@@ -1,5 +1,6 @@
 import idaapi
 import idc
+import idautils
 import webbrowser
 import urllib
 
@@ -112,32 +113,47 @@ class VTGrep_Search():
         self.addr_start = start
         self.addr_end = end
 
-    def get_opcodes(self, addr):
-        OFFSETS = [idaapi.o_far, idaapi.o_near, idaapi.o_mem]
-
-        if idaapi.IDA_SDK_VERSION >= 700:
-            op1 = idc.get_operand_type(addr, 0)
-            op2 = idc.get_operand_type(addr, 1)
-        else:
-            op1 = idc.GetOpType(addr, 0)
-            op2 = idc.GetOpType(addr, 1)
-
+    def add_wildcards(self, pattern, addr, len):
         len = idc.ItemSize(addr)
 
-        if op1 in OFFSETS or op2 in OFFSETS:
-            opcode_prefix = idc.GetManyBytes(addr, 1).encode("hex")
-            if opcode_prefix == "0f" or opcode_prefix == "f2" or opcode_prefix == "f3":  # Opcode Prefix (Intel x86)
-                pattern = idc.GetManyBytes(addr, 2).encode("hex")
-                j = 2
-            else:
-                pattern = opcode_prefix  # No prefix is used
-                j = 1
-            for i in range(j, len):
-                pattern += "??"
+        inst_prefix = idc.GetManyBytes(addr, 1).encode("hex")
+
+        if inst_prefix == "0f" or inst_prefix == "f2" or inst_prefix == "f3":  # Opcode Prefix (Intel x86)
+            pattern = idc.GetManyBytes(addr, 2).encode("hex")
+            j = 2
         else:
-            pattern = idc.GetManyBytes(addr, len).encode("hex")
+            pattern = inst_prefix  # No prefix is used
+            j = 1
+
+        for i in range(j, len):
+            pattern += "??"
         return pattern
 
+    def get_opcodes(self, addr):
+        OFFSETS = [idaapi.o_far, idaapi.o_mem]
+        JMP_or_CALLS = [idaapi.NN_jmp, idaapi.NN_call] 
+        pattern = ""
+
+        if idaapi.IDA_SDK_VERSION >= 700:
+            op1_type = idc.get_operand_type(addr, 0)
+            op2_type = idc.get_operand_type(addr, 1)
+        else:
+            op1_type = idc.GetOpType(addr, 0)
+            op2_type = idc.GetOpType(addr, 1)
+
+        len = idc.ItemSize(addr)
+        mnem = idautils.DecodeInstruction(addr)
+
+        if op1_type in OFFSETS or op2_type in OFFSETS:
+            pattern = self.add_wildcards(pattern, addr, len)
+        else:
+            if mnem.itype in JMP_or_CALLS:
+                pattern = self.add_wildcards(pattern, addr, len)
+            else:
+                pattern = idc.GetManyBytes(addr, len).encode("hex")  
+        return pattern
+
+        
     def sanitize(self, buffer):
         oc = 0
         bl = len(buffer)
