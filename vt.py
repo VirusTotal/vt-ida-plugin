@@ -157,8 +157,6 @@ class VTGrep_Search():
         oc = 0
         bl = len(buffer)
 
-#        print "Original: " + buffer
-
         # Search for sets of <4 bytes between wildcards
         for i in range(0, bl):
             if buffer[i] == "?":
@@ -186,8 +184,6 @@ class VTGrep_Search():
         i = 0
         
         # Look for more than 4 "?" wildcard characters and replace them with "[]"" wildcards.
- #       print "Original saneado: " + buffer
-
         while i < bl:
             if buffer[i] == "?":
                 num_wcs += 1
@@ -205,7 +201,6 @@ class VTGrep_Search():
                     i += 1
                 start_wcs = 0
                 num_wcs = 0
- #       print "Modificado: " + buffer
         return buffer
 
     def search(self, wildcards=False):
