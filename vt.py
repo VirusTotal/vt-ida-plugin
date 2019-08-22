@@ -4,8 +4,9 @@ import idautils
 import webbrowser
 import urllib
 
+
 _MIN_QUERY_SIZE = 7
-_MAX_QUERY_SIZE = 136
+_MAX_QUERY_SIZE = 1800
 VERSION = "0.1"
 
 
@@ -222,9 +223,11 @@ class VTGrep_Search():
                 str_buf = idc.GetManyBytes(self.addr_start, self.addr_end - self.addr_start).encode("hex")
 
             if _MIN_QUERY_SIZE < len(str_buf) < _MAX_QUERY_SIZE:
-                self.url = "www.virustotal.com/gui/search/content:{" + str_buf + "}/files"
+                self.url = urllib.quote("www.virustotal.com/gui/search/content:{" + str_buf + "}/files")
+                print "Openning... " + self.url
                 try:
-                    webbrowser.open(urllib.quote(self.url), new=2)
+                    
+                    webbrowser.open(self.url, new=True)
                 except Exception as e:
                     print "[VT plugin] ERROR! While opening web browser: " % e
             else:
