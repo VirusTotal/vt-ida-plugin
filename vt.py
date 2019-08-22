@@ -131,7 +131,6 @@ class VTGrep_Search():
 
     def get_opcodes(self, addr):
         OFFSETS = [idaapi.o_far, idaapi.o_mem]
-        JMP_or_CALLS = [idaapi.NN_jmp, idaapi.NN_call] 
         pattern = ""
 
         if idaapi.IDA_SDK_VERSION >= 700:
@@ -147,7 +146,7 @@ class VTGrep_Search():
         if op1_type in OFFSETS or op2_type in OFFSETS:
             pattern = self.add_wildcards(pattern, addr, len)
         else:
-            if (mnem.itype in JMP_or_CALLS) and (op1_type != idaapi.o_near):
+            if (mnem.itype == idaapi.NN_call) or (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near):
                 pattern = self.add_wildcards(pattern, addr, len)
             else:
                 pattern = idc.GetManyBytes(addr, len).encode("hex")  
