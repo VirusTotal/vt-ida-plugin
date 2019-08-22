@@ -147,7 +147,7 @@ class VTGrep_Search():
         if op1_type in OFFSETS or op2_type in OFFSETS:
             pattern = self.add_wildcards(pattern, addr, len)
         else:
-            if mnem.itype in JMP_or_CALLS:
+            if (mnem.itype in JMP_or_CALLS) and (op1_type != idaapi.o_near):
                 pattern = self.add_wildcards(pattern, addr, len)
             else:
                 pattern = idc.GetManyBytes(addr, len).encode("hex")  
@@ -157,6 +157,8 @@ class VTGrep_Search():
     def sanitize(self, buffer):
         oc = 0
         bl = len(buffer)
+
+#        print "Original: " + buffer
 
         # Search for sets of <4 bytes between wildcards
         for i in range(0, bl):
@@ -178,7 +180,33 @@ class VTGrep_Search():
             wc_str = "?" * oc
             buffer = buffer[0:j] + wc_str
 
-        buffer = buffer.strip("?")
+        buffer = buffer.rstrip("?")
+        num_wcs = 0
+        start_wcs = 0
+        bl = len(buffer)
+        i = 0
+        
+        # Look for more than 4 "?" wildcard characters and replace them with "[]"" wildcards.
+ #       print "Original saneado: " + buffer
+
+        while i < bl:
+            if buffer[i] == "?":
+                num_wcs += 1
+                if num_wcs == 1:
+                    start_wcs = i
+                i += 1
+            else:
+                if num_wcs > 3 and (num_wcs % 2 == 0):
+                    wcs_index = (num_wcs / 2)
+                    wcs_str = "[" + str(wcs_index) + "]"
+                    buffer = buffer[0:start_wcs] + wcs_str + buffer[(start_wcs + num_wcs):]
+                    bl = len(buffer)
+                    i = start_wcs + len(wcs_str) + 1
+                else:
+                    i += 1
+                start_wcs = 0
+                num_wcs = 0
+ #       print "Modificado: " + buffer
         return buffer
 
     def search(self, wildcards=False):
@@ -234,11 +262,11 @@ class VT_t(idaapi.plugin_t):
         except:
             pass
 
-        print "- - " * 13
+        print "- - " * 20
         print("VT plugin for IDA Pro v{0} (c) Google, 2019".format(VERSION))
         print("Shortcut key is Alt-F10")
         print("\n This plugin integrates some functionalities of VirusTotal Enterprise into IDA Pro")
-        print "- - " * 13
+        print "- - " * 20
         return idaapi.PLUGIN_KEEP
 
     def search_with_wildcards(self):
