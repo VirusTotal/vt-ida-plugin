@@ -224,9 +224,7 @@ class VTGrep_Search():
 
             if _MIN_QUERY_SIZE < len(str_buf) < _MAX_QUERY_SIZE:
                 self.url = urllib.quote("www.virustotal.com/gui/search/content:{" + str_buf + "}/files")
-                print "Openning... " + self.url
-                try:
-                    
+                try:           
                     webbrowser.open(self.url, new=True)
                 except Exception as e:
                     print "[VT plugin] ERROR! While opening web browser: " % e
