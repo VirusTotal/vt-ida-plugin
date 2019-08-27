@@ -4,27 +4,6 @@ import idautils
 import webbrowser
 import urllib
 
-
-_MIN_QUERY_SIZE = 7
-_MAX_QUERY_SIZE = 1800
-VERSION = "0.1"
-
-
-class Popup(idaapi.UI_Hooks):
-    if idaapi.IDA_SDK_VERSION >= 700:
-        # IDA >= 7
-        def finish_populating_widget_popup(self, form, popup):
-            if idaapi.get_widget_type(form) == idaapi.BWN_DISASM:
-                idaapi.attach_action_to_popup(form, popup, VTGrep_wildcards.get_name(), "VTGrep/")
-                idaapi.attach_action_to_popup(form, popup, VTGrep_bytes.get_name(), "VTGrep/")
-    else:
-        # IDA < 7
-        def finish_populating_tform_popup(self, form, popup):
-            if idaapi.get_tform_type(form) == idaapi.BWN_DISASM:
-                idaapi.attach_action_to_popup(form, popup, VTGrep_wildcards.get_name(), "VTGrep/")
-                idaapi.attach_action_to_popup(form, popup, VTGrep_bytes.get_name(), "VTGrep/")
-
-
 class VTGrep_wildcards(idaapi.action_handler_t):
 
     @classmethod
@@ -40,6 +19,7 @@ class VTGrep_wildcards(idaapi.action_handler_t):
         self.plugin = plugin
         self.label = label
         instance = self()
+
         return idaapi.register_action(idaapi.action_desc_t(
             self.get_name(),
             instance.get_label(),
@@ -53,6 +33,7 @@ class VTGrep_wildcards(idaapi.action_handler_t):
     @classmethod
     def activate(self, ctx):
         self.plugin.search_with_wildcards()
+
         return 1
 
     @classmethod
@@ -61,7 +42,6 @@ class VTGrep_wildcards(idaapi.action_handler_t):
             return idaapi.AST_ENABLE_FOR_FORM
         else:
             return idaapi.AST_DISABLE_FOR_FORM
-
 
 class VTGrep_bytes(idaapi.action_handler_t):
 
@@ -78,6 +58,7 @@ class VTGrep_bytes(idaapi.action_handler_t):
         self.plugin = plugin
         self.label = label
         instance = self()
+
         return idaapi.register_action(idaapi.action_desc_t(
             self.get_name(),
             instance.get_label(),
@@ -103,31 +84,141 @@ class VTGrep_bytes(idaapi.action_handler_t):
         except:
             return idaapi.AST_ENABLE_ALWAYS
 
+class Bytes():
+    bytes_stream = ""
+
+    def __init__(self, buffer):
+        self.bytes_stream = buffer
+
+    def append(self, slice):
+        if not isinstance(slice, Bytes):
+            self.bytes_stream = self.bytes_stream + slice
+        else:
+            self.bytes_stream = self.bytes_stream + slice.get()
+
+    def get(self):
+        return self.bytes_stream
+    
+    def len(self):
+        return len(self.bytes_stream)
+
+    def isWildCards(self):
+        return False
+
+    def isBytes(self):
+        return True
+
+    def sameType(self, object):
+        if isinstance(object, Bytes):
+            return True
+        else:
+            return False
+
+class WildCards():
+    wcs_stream = ""
+    packed = False
+
+    def __init__(self, buffer):
+        self.wcs_stream = buffer
+        self.pack()
+
+    def append(self, slice): # slice can be a WildCards instance or a string of wildcards
+        if not self.packed and not isinstance(slice, WildCards):
+            self.wcs_stream = self.wcs_stream + slice
+            self.pack()
+        else:
+            if isinstance(slice, WildCards):
+                wcs_len = self.len() + slice.len()
+            else:
+                wcs_len = self.len() + len(slice)
+ 
+            wcs_count = wcs_len / 2            
+            self.wcs_stream = "[" + str(wcs_count) + "]" + "?" * (wcs_len % 2)
+            self.packed = True
+
+    def get(self):
+        return self.wcs_stream
+
+    def len(self):
+        str_len = 0
+        if self.packed:
+            wcs_len = self.wcs_stream.lstrip("[").rstrip("]")
+            question_index = self.wcs_stream.find('?')
+            if question_index != -1:
+                str_len = int(wcs_len.rstrip("]?")) * 2
+                str_len += 1
+            else:
+                str_len = int(wcs_len) * 2
+            return str_len
+        else:
+            return len(self.wcs_stream)
+
+    def pack(self):
+        if not self.packed:
+            wcs_len = len(self.wcs_stream)
+            if wcs_len > 3:
+                wcs_count = (wcs_len / 2)
+                self.wcs_stream = "[" + str(wcs_count) + "]" + "?" * (wcs_len % 2)
+                self.packed = True
+
+    def unpack(self):
+        if self.packed:
+            wcs_len = self.len()
+            self.wcs_stream = "?" * wcs_len
+
+    def isWildCards(self):
+        return True
+
+    def isBytes(self):
+        return False 
+
+    def sameType(self, object):
+        if isinstance(object, WildCards):
+            return True
+        else:
+            return False
+
+class Popup(idaapi.UI_Hooks):
+    if idaapi.IDA_SDK_VERSION >= 700:
+        # IDA >= 7
+        def finish_populating_widget_popup(self, form, popup):
+            if idaapi.get_widget_type(form) == idaapi.BWN_DISASM:
+                idaapi.attach_action_to_popup(form, popup, VTGrep_wildcards.get_name(), "VTGrep/")
+                idaapi.attach_action_to_popup(form, popup, VTGrep_bytes.get_name(), "VTGrep/")
+    else:
+        # IDA < 7
+        def finish_populating_tform_popup(self, form, popup):
+            if idaapi.get_tform_type(form) == idaapi.BWN_DISASM:
+                idaapi.attach_action_to_popup(form, popup, VTGrep_wildcards.get_name(), "VTGrep/")
+                idaapi.attach_action_to_popup(form, popup, VTGrep_bytes.get_name(), "VTGrep/")
+
 
 class VTGrep_Search():
     ea = 0
     url = ""
     addr_start = 0
     addr_end = 0
+    query_list = []
+    _MIN_QUERY_SIZE = 7
+    _MAX_QUERY_SIZE = 1800
 
     def __init__(self, start, end):
         self.addr_start = start
         self.addr_end = end
 
-    def add_wildcards(self, pattern, addr, len):
+    def set_wildcards(self, pattern, addr, len):
         len = idc.ItemSize(addr)
 
         inst_prefix = idc.GetManyBytes(addr, 1).encode("hex")
 
         if inst_prefix == "0f" or inst_prefix == "f2" or inst_prefix == "f3":  # Opcode Prefix (Intel x86)
             pattern = idc.GetManyBytes(addr, 2).encode("hex")
-            j = 2
+            ins_num_bytes = 2
         else:
             pattern = inst_prefix  # No prefix is used
-            j = 1
-
-        for i in range(j, len):
-            pattern += "??"
+            ins_num_bytes = 1
+        
+        pattern += " " + "??" * (len - ins_num_bytes) + " "      
         return pattern
 
     def get_opcodes(self, addr):
@@ -141,73 +232,88 @@ class VTGrep_Search():
             op1_type = idc.GetOpType(addr, 0)
             op2_type = idc.GetOpType(addr, 1)
 
-        len = idc.ItemSize(addr)
+        ins_len = idc.ItemSize(addr)
         mnem = idautils.DecodeInstruction(addr)
 
         if op1_type in OFFSETS or op2_type in OFFSETS:
-            pattern = self.add_wildcards(pattern, addr, len)
+            pattern = self.set_wildcards(pattern, addr, ins_len)
         else:
             if (mnem.itype == idaapi.NN_call) or (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near):
-                pattern = self.add_wildcards(pattern, addr, len)
+                pattern = self.set_wildcards(pattern, addr, ins_len)
             else:
-                pattern = idc.GetManyBytes(addr, len).encode("hex")  
+                pattern = idc.GetManyBytes(addr, ins_len).encode("hex")  
         return pattern
 
-        
-    def sanitize(self, buffer):
-        oc = 0
-        bl = len(buffer)
+    def generate_slices(self, buffer):
+        list_slices = buffer.split()
 
-        # Search for sets of <4 bytes between wildcards
-        for i in range(0, bl):
-            if buffer[i] == "?":
-                if oc < 8 and oc != 0:
-                    j = i - oc
-                    wc_str = "?" * oc
-                    if j == 0:
-                        buffer = wc_str + buffer[i:bl]
-                    else:
-                        buffer = buffer[0:j] + wc_str + buffer[i:bl]
-                oc = 0
+        for slice in list_slices:
+            if slice[0] == "?":
+                yield WildCards(slice)
             else:
-                if buffer[i] != " ":
-                    oc += 1
+                yield Bytes(slice)
 
-        if oc < 8 and oc != 0:  # Search for a set of <4 bytes at the end of the query
-            j = i - oc + 1
-            wc_str = "?" * oc
-            buffer = buffer[0:j] + wc_str
+    def create_query(self, buffer):
+        query_slices = self.generate_slices(buffer)
 
-        buffer = buffer.rstrip("?")
-        num_wcs = 0
-        start_wcs = 0
-        bl = len(buffer)
-        i = 0
-        
-        # Look for more than 4 "?" wildcard characters and replace them with "[]"" wildcards.
-        while i < bl:
-            if buffer[i] == "?":
-                num_wcs += 1
-                if num_wcs == 1:
-                    start_wcs = i
-                i += 1
+        for slice in query_slices:
+            if not self.query_list:  
+                  self.query_list.append(slice)
             else:
-                if num_wcs > 3 and (num_wcs % 2 == 0):
-                    wcs_index = (num_wcs / 2)
-                    wcs_str = "[" + str(wcs_index) + "]"
-                    buffer = buffer[0:start_wcs] + wcs_str + buffer[(start_wcs + num_wcs):]
-                    bl = len(buffer)
-                    i = start_wcs + len(wcs_str) + 1
+                query_prev = len(self.query_list) - 1
+
+                if not (slice.sameType(self.query_list[query_prev])):
+                    self.query_list.append(slice)
                 else:
-                    i += 1
-                start_wcs = 0
-                num_wcs = 0
-        return buffer
+                    self.query_list[query_prev].append(slice)              
+
+        return self.sanitize()
+
+    def sanitize(self):
+        query_len = len(self.query_list)
+        restart = False
+        slice_index = 0
+
+        while (slice_index < query_len):
+
+            slice = self.query_list[slice_index] 
+            next_slice_index = slice_index + 1
+
+            if (next_slice_index) != query_len:
+                next_slice = self.query_list[next_slice_index]
+            else:
+                next_slice = ""
+
+            if not next_slice: # Last slice
+                if (slice.isBytes() and slice.len() < 8) or slice.isWildCards():
+                    self.query_list.pop(slice_index)
+                    restart = True
+                break
+            else:
+                if slice.sameType(next_slice):
+                    self.query_list[slice_index].append(next_slice)
+                    self.query_list.pop(next_slice_index)
+                    restart = True
+                    break
+                else:
+                    if slice.isBytes() and (slice.len() < 8) and next_slice.isWildCards():
+                        wcs_stream = "?" * slice.len()    
+                        self.query_list[next_slice_index].append(wcs_stream)
+                        self.query_list.pop(slice_index)          
+                        restart = True
+                        break
+                    else:
+                        slice_index += 1
+        if restart:
+            return self.sanitize()
+        else:
+            buffer = "".join(str(element.get()) for element in self.query_list)
+            return buffer          
 
     def search(self, wildcards=False):
         current = self.addr_start
         str_buf = ""
-
+ 
         if (self.addr_start == idaapi.BADADDR) or (self.addr_end == idaapi.BADADDR):
             print "[VT plugin] ERROR! Select a valid area to query VTGrep."
         else:
@@ -218,16 +324,17 @@ class VTGrep_Search():
                         current = idc.next_head(current)
                     else:
                         current = idc.NextHead(current)
-                str_buf = self.sanitize(str_buf)
+                str_buf = self.create_query(str_buf)
             else:
                 str_buf = idc.GetManyBytes(self.addr_start, self.addr_end - self.addr_start).encode("hex")
 
-            if _MIN_QUERY_SIZE < len(str_buf) < _MAX_QUERY_SIZE:
+            if self._MIN_QUERY_SIZE < len(str_buf) < self._MAX_QUERY_SIZE:
                 self.url = urllib.quote("www.virustotal.com/gui/search/content:{" + str_buf + "}/files")
                 try:           
                     webbrowser.open(self.url, new=True)
                 except Exception as e:
                     print "[VT plugin] ERROR! While opening web browser: " % e
+                del self.query_list[:]
             else:
                 print "[VT plugin] ERROR! Invalid query length (must be between 8 and 136)."
 
@@ -237,7 +344,8 @@ class VT_t(idaapi.plugin_t):
     comment = "VirusTotal plugin for IDA Pro"
     help = "This plugin integrates some services from VirusTotal Enterprise into IDA Pro"
     wanted_name = "VT_plugin"
-    wanted_hotkey = "Alt-V"
+    wanted_hotkey = ""
+    VERSION = "0.1"
 
     def init(self):
         self.menu = Popup()
@@ -251,15 +359,13 @@ class VT_t(idaapi.plugin_t):
                 idaapi.attach_action_to_menu("Edit/VTGrep/", VTGrep_wildcards.get_name(), idaapi.SETMENU_APP)
                 idaapi.attach_action_to_menu("Edit/VTGrep/", VTGrep_bytes.get_name(), idaapi.SETMENU_APP)
             else:
-                idaapi.add_menu_item("Edit/VTGrep/", VTGrep_wildcards.get_name(), "", 1, self.searc_with_wildcards,
-                                     None)
+                idaapi.add_menu_item("Edit/VTGrep/", VTGrep_wildcards.get_name(), "", 1, self.searc_with_wildcards, None)
                 idaapi.add_menu_item("Edit/VTGrep/", VTGrep_bytes.get_name(), "", 1, self.search_for_bytes, None)
         except:
             pass
 
         print "- - " * 20
-        print("VT plugin for IDA Pro v{0} (c) Google, 2019".format(VERSION))
-        print("Shortcut key is Alt-F10")
+        print("VT plugin for IDA Pro v{0} (c) Google, 2019".format(self.VERSION))
         print("\n This plugin integrates some functionalities of VirusTotal Enterprise into IDA Pro")
         print "- - " * 20
         return idaapi.PLUGIN_KEEP
