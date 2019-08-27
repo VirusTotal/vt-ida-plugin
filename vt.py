@@ -200,7 +200,7 @@ class WildCards():
             return False
 
 class Popup(idaapi.UI_Hooks):
-    """ Class to implement the right click operations that presents the options to interact with VTE """
+    """ Class to implement the right click operations in the UI that presents the options to interact with VTE """
 
     if idaapi.IDA_SDK_VERSION >= 700:
         # IDA >= 7
@@ -217,14 +217,11 @@ class Popup(idaapi.UI_Hooks):
 
 
 class VTGrep_Search():
-    """ 
-    VTGrep main class that implements all the methods to launch querys to VTGrep 
+    """ VTGrep main class that implements all the methods to launch querys to VTGrep 
     
-    This class implements the whole process of receiving a range of memory addresses, reading all the bytes and 
-    transforming them (if desired) using wildcards to avoid memory address.
-    """
+        This class implements the whole process of receiving a range of memory addresses, reading all the bytes and 
+        transforming them (if desired) using wildcards to avoid memory address. """
 
-    ea = 0
     url = ""
     addr_start = 0
     addr_end = 0
@@ -308,14 +305,12 @@ class VTGrep_Search():
         return self.sanitize()
 
     def sanitize(self):
-        """ 
-            Apply some checks to the current query before sending it to VTGrep 
+        """ Apply some checks to the current query before sending it to VTGrep 
             Checks performed:
             - No ending [] 
             - No consecutive [][]
             - No consecutive byte strings 
-            - More than 4 bytes between []
-        """
+            - More than 4 bytes between [] """
 
         query_len = len(self.query_list)
         restart = False
