@@ -1,3 +1,18 @@
+# Copyright © 2019 Google Inc. All Rights Reserved.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+__author__ = 'gerardofn@virustotal.com'
+
 import idaapi
 import idc
 import idautils
@@ -5,6 +20,7 @@ import webbrowser
 import urllib
 
 class VTGrep_wildcards(idaapi.action_handler_t):
+    """ Interface for searching patterns in VTGrep using wildcards """
 
     @classmethod
     def get_name(self):
@@ -44,6 +60,7 @@ class VTGrep_wildcards(idaapi.action_handler_t):
             return idaapi.AST_DISABLE_FOR_FORM
 
 class VTGrep_bytes(idaapi.action_handler_t):
+    """ Interface for searching bytes in VTGrep """
 
     @classmethod
     def get_name(self):
@@ -85,6 +102,8 @@ class VTGrep_bytes(idaapi.action_handler_t):
             return idaapi.AST_ENABLE_ALWAYS
 
 class Bytes():
+    """ Class to represent Bytes in a search query """
+
     bytes_stream = ""
 
     def __init__(self, buffer):
@@ -115,6 +134,8 @@ class Bytes():
             return False
 
 class WildCards():
+    """ Class to represent a set of WildCards used in a search query """
+
     wcs_stream = ""
     packed = False
 
@@ -179,6 +200,8 @@ class WildCards():
             return False
 
 class Popup(idaapi.UI_Hooks):
+    """ Class to implement the right click operations that presents the options to interact with VTE """
+
     if idaapi.IDA_SDK_VERSION >= 700:
         # IDA >= 7
         def finish_populating_widget_popup(self, form, popup):
@@ -194,6 +217,13 @@ class Popup(idaapi.UI_Hooks):
 
 
 class VTGrep_Search():
+    """ 
+    VTGrep main class that implements all the methods to launch querys to VTGrep 
+    
+    This class implements the whole process of receiving a range of memory addresses, reading all the bytes and 
+    transforming them (if desired) using wildcards to avoid memory address.
+    """
+
     ea = 0
     url = ""
     addr_start = 0
@@ -207,6 +237,8 @@ class VTGrep_Search():
         self.addr_end = end
 
     def set_wildcards(self, pattern, addr, len):
+        """ Replace volatile bytes (calls and some jumps parameters) by using wildcards characters """
+
         len = idc.ItemSize(addr)
 
         inst_prefix = idc.GetManyBytes(addr, 1).encode("hex")
@@ -222,6 +254,8 @@ class VTGrep_Search():
         return pattern
 
     def get_opcodes(self, addr):
+        """ Identify the instruction located at addr in order to replace parameters with wildcards """
+
         OFFSETS = [idaapi.o_far, idaapi.o_mem]
         pattern = ""
 
@@ -245,6 +279,8 @@ class VTGrep_Search():
         return pattern
 
     def generate_slices(self, buffer):
+        """ Navigate through a string buffer generating WildCards and Bytes objects """
+        
         list_slices = buffer.split()
 
         for slice in list_slices:
@@ -254,6 +290,8 @@ class VTGrep_Search():
                 yield Bytes(slice)
 
     def create_query(self, buffer):
+        """ Receives a string buffer and produces a query compatible with VTGrep """
+
         query_slices = self.generate_slices(buffer)
 
         for slice in query_slices:
@@ -270,6 +308,15 @@ class VTGrep_Search():
         return self.sanitize()
 
     def sanitize(self):
+        """ 
+            Apply some checks to the current query before sending it to VTGrep 
+            Checks performed:
+            - No ending [] 
+            - No consecutive [][]
+            - No consecutive byte strings 
+            - More than 4 bytes between []
+        """
+
         query_len = len(self.query_list)
         restart = False
         slice_index = 0
@@ -311,6 +358,9 @@ class VTGrep_Search():
             return buffer          
 
     def search(self, wildcards=False):
+        """ Checks the current bytes selected in IDA Pro, call the appropriate method for generating a valid 
+            query for VTGrep and open the web browser to launch the query """
+
         current = self.addr_start
         str_buf = ""
  
@@ -340,6 +390,8 @@ class VTGrep_Search():
 
 
 class VT_t(idaapi.plugin_t):
+    """ Plugin interface """
+
     flags = idaapi.PLUGIN_UNL
     comment = "VirusTotal plugin for IDA Pro"
     help = "This plugin integrates some services from VirusTotal Enterprise into IDA Pro"
@@ -348,6 +400,7 @@ class VT_t(idaapi.plugin_t):
     VERSION = "0.1"
 
     def init(self):
+        """ Set up menu options and shows the welcoming message """
         self.menu = Popup()
         self.menu.hook()
 
