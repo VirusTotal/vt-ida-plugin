@@ -103,7 +103,7 @@ class VTGrepBytes(idaapi.action_handler_t):
       return idaapi.AST_ENABLE_ALWAYS
 
 
-class Bytes():
+class Bytes(object):
   """Class that represents a slice of bytes in a search query."""
 
   bytes_stream = ""
@@ -136,7 +136,7 @@ class Bytes():
       return False
 
 
-class WildCards():
+class WildCards(object):
   """Class that represents a slice of wildcards in a search query."""
 
   wcs_stream = ""
@@ -243,7 +243,7 @@ class Popup(idaapi.UI_Hooks):
             )
 
 
-class VTGrepSearch():
+class VTGrepSearch(object):
   """Implements all the methods to launch querys to VTGrep.
 
     This class implements the whole process of receiving a range of memory
@@ -486,7 +486,7 @@ class VTplugin(idaapi.plugin_t):
     print "- - " * 21
     print "VT plugin for IDA Pro v{0} (c) Google, 2019".format(self.VERSION)
     print "VirusTotal Enterprise integration plugin for IDA Pro 6/7"
-    print "\nSelect instructions and right click to search on VTGrep\n"
+    print "\nSelect instructions and right click to search on VTGrep"
     print "- - " * 21
 
     return idaapi.PLUGIN_KEEP
