@@ -256,7 +256,6 @@ class VTGrepSearch():
   addr_start = 0
   addr_end = 0
   query_list = []
-  _MAX_MEMORY_RANGE = 400  # memory addresses
   _MIN_QUERY_SIZE = 7      # number of bytes
   _MAX_QUERY_SIZE = 1600
 
@@ -401,7 +400,7 @@ class VTGrepSearch():
     str_buf = ""
 
     if ((self.addr_start == idaapi.BADADDR) or (self.addr_end == idaapi.BADADDR)
-        or (self.addr_end - self.addr_start) > self._MAX_MEMORY_RANGE):
+        or (self.addr_end - self.addr_start) > self._MAX_QUERY_SIZE):
       print "[VT plugin] ERROR! Select a valid area to query VTGrep."
     else:
       if wildcards:
