@@ -381,8 +381,10 @@ class VTGrepSearch(object):
     """Process current selection and generate a query for VTGrep.
 
     Args:
+      wildcards: boolean that decides the type of search to perform:
+        True: search replacing offsets and memory locations with widlcards
+        False: search for a sequence of bytes
 
-    wildcards: search replacing
     Checks the current bytes selected in IDA Pro, call the appropriate
     method for generating a valid query for VTGrep and open the web browser to
     launch the query.
