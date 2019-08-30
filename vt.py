@@ -188,11 +188,6 @@ class WildCards(object):
         self.wcs_stream = '[{}]'.format(str(wcs_count)) + '?' * (wcs_len % 2)
         self.packed = True
 
-  def unpack(self):
-    if self.packed:
-      wcs_len = self.len()
-      self.wcs_stream = '?' * wcs_len
-
   def combine(self, next_object):
     if next_object:
       if isinstance(next_object, Bytes):
