@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__author__ = "gerardofn@virustotal.com"
+__author__ = 'gerardofn@virustotal.com'
 
 import idaapi
 import idautils
@@ -106,7 +106,7 @@ class VTGrepBytes(idaapi.action_handler_t):
 class Bytes(object):
   """Class that represents a slice of bytes in a search query."""
 
-  bytes_stream = ""
+  bytes_stream = ''
 
   def __init__(self, buf):
     self.bytes_stream = buf
@@ -264,7 +264,7 @@ class VTGrepSearch(object):
   def _get_instruction_bytes_wildcarded(pattern, addr):
     """Replace bytes related to offsets and memory locations with wildcards."""
 
-    inst_prefix = idc.GetManyBytes(addr, 1).encode("hex")
+    inst_prefix = idc.GetManyBytes(addr, 1).encode('hex')
 
     if inst_prefix in ('0f', 'f2', 'f3'):
       # Opcode Prefix (Intel x86)
@@ -310,7 +310,7 @@ class VTGrepSearch(object):
     list_slices = buf.split()
 
     for qslice in list_slices:
-      if qslice[0] == "?":
+      if qslice[0] == '?':
         yield WildCards(qslice)
       else:
         yield Bytes(qslice)
@@ -386,7 +386,7 @@ class VTGrepSearch(object):
         False: search for a sequence of bytes
 
     Checks the current bytes selected in IDA Pro, call the appropriate
-    method for generating a valid query for VTGrep and open the web browser to
+    method for generating a valid query for VTGrep, and open the web browser to
     launch the query.
     """
 
