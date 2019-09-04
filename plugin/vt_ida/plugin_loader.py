@@ -14,6 +14,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import idaapi
+import idc
 from vt_ida.vtgrep import VTGrepSearch
 
 
