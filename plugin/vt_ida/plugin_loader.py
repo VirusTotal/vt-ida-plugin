@@ -17,6 +17,9 @@ import idaapi
 import idc
 from vt_ida.vtgrep import VTGrepSearch
 
+def PLUGIN_ENTRY():
+  return VTplugin()
+
 
 class VTGrepWildcards(idaapi.action_handler_t):
   """IDA interface for VTplugin.search_with_wildcards() method."""
@@ -236,5 +239,4 @@ class VTplugin(idaapi.plugin_t):
       self.menu.unhook()
 
 
-def PLUGIN_ENTRY():
-  return VTplugin()
+
