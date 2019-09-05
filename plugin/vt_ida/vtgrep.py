@@ -292,10 +292,10 @@ class VTGrepSearch(object):
 
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
-        self.url = urllib.quote(vtgrep_url.format(str_buf))
+        self.url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
 
         try:
-          webbrowser.open(self.url, new=True)
+          webbrowser.open_new(self.url)
         except Exception as e:
           print '[VT plugin] ERROR! While opening web browser: ' % e
         del self.query_list[:]
