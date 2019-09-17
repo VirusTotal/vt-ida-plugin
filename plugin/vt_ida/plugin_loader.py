@@ -15,7 +15,7 @@ __author__ = 'gerardofn@virustotal.com'
 
 import idaapi
 import idc
-from vt_ida.vtgrep import VTGrepSearch
+from vt_ida import vtgrep
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -95,13 +95,10 @@ class VTGrepBytes(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
-    try:
       if ctx.form_type == idaapi.BWN_DISASM:
         return idaapi.AST_ENABLE_FOR_FORM
       else:
         return idaapi.AST_DISABLE_FOR_FORM
-    except:
-      return idaapi.AST_ENABLE_ALWAYS
 
 
 class Popup(idaapi.UI_Hooks):
@@ -117,13 +114,13 @@ class Popup(idaapi.UI_Hooks):
             form,
             popup,
             VTGrepWildcards.get_name(),
-            'VTGrep/',
+            'VirusTotal/',
             )
         idaapi.attach_action_to_popup(
             form,
             popup,
             VTGrepBytes.get_name(),
-            'VTGrep/'
+            'VirusTotal/'
             )
   else:
     # IDA < 7
@@ -135,13 +132,13 @@ class Popup(idaapi.UI_Hooks):
             form,
             popup,
             VTGrepWildcards.get_name(),
-            'VTGrep/',
+            'VirusTotal/',
             )
         idaapi.attach_action_to_popup(
             form,
             popup,
             VTGrepBytes.get_name(),
-            'VTGrep/'
+            'VirusTotal/'
             )
 
 
@@ -166,18 +163,18 @@ class VTplugin(idaapi.plugin_t):
 
       if idaapi.IDA_SDK_VERSION >= 700:
         idaapi.attach_action_to_menu(
-            'Edit/VTGrep/',
+            'Edit/VirusTotal/',
             VTGrepWildcards.get_name(),
             idaapi.SETMENU_APP
             )
         idaapi.attach_action_to_menu(
-            'Edit/VTGrep/',
+            'Edit/VirusTotal/',
             VTGrepBytes.get_name(),
             idaapi.SETMENU_APP
             )
       else:
         idaapi.add_menu_item(
-            'Edit/VTGrep/',
+            'Edit/VirusTotal/',
             VTGrepWildcards.get_name(),
             '',
             1,
@@ -185,7 +182,7 @@ class VTplugin(idaapi.plugin_t):
             None
             )
         idaapi.add_menu_item(
-            'Edit/VTGrep/',
+            'Edit/VirusTotal/',
             VTGrepBytes.get_name(),
             '',
             1,
@@ -198,8 +195,8 @@ class VTplugin(idaapi.plugin_t):
 
     print '- - ' * 21
     print 'VT plugin for IDA Pro v{0} (c) Google, 2019'.format(self.VERSION)
-    print 'VirusTotal Enterprise integration plugin for IDA Pro 6/7'
-    print '\nSelect instructions and right click to search on VTGrep'
+    print 'VirusTotal integration plugin for IDA Pro 6/7'
+    print '\nSelect instructions and right click to search on VTGrep.'
     print '- - ' * 21
 
     return idaapi.PLUGIN_KEEP
@@ -207,26 +204,26 @@ class VTplugin(idaapi.plugin_t):
   @staticmethod
   def search_with_wildcards():
     if idaapi.IDA_SDK_VERSION >= 700:
-      search = VTGrepSearch(
+      search = vtgrep.VTGrepSearch(
           idc.read_selection_start(),
           idc.read_selection_end()
           )
     else:
       sel, sel_start, sel_end = idaapi.read_selection()
-      search = VTGrepSearch(sel_start, sel_end)
+      search = vtgrep.VTGrepSearch(sel_start, sel_end)
 
     search.search(True)
 
   @staticmethod
   def search_for_bytes():
     if idaapi.IDA_SDK_VERSION >= 700:
-      search = VTGrepSearch(
+      search = vtgrep.VTGrepSearch(
           idc.read_selection_start(),
           idc.read_selection_end()
           )
     else:
       sel, sel_start, sel_end = idaapi.read_selection()
-      search = VTGrepSearch(sel_start, sel_end)
+      search = vtgrep.VTGrepSearch(sel_start, sel_end)
 
     search.search(False)
 
