@@ -13,16 +13,65 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
+import ida_kernwin
 import idaapi
 import idc
+import logging
+from vt_ida import config
 from vt_ida import vtgrep
+
 
 def PLUGIN_ENTRY():
   return VTplugin()
 
 
+class VTGrepStrings(idaapi.action_handler_t):
+  """Performs the right click operation: Search for string."""
+
+  @classmethod
+  def get_name(cls):
+    return cls.__name__
+
+  @classmethod
+  def get_label(cls):
+    return cls.label
+
+  @classmethod
+  def activate(cls, ctx):
+    for idx in ctx.chooser_selection:
+      _, _, _, selected_string = ida_kernwin.get_chooser_data(
+          ctx.widget_title,
+          idx
+          )
+      cls.plugin.search_string(selected_string)
+    return 0
+
+  @classmethod
+  def register(cls, plugin, label):
+    cls.plugin = plugin
+    cls.label = label
+    instance = cls()
+
+    return idaapi.register_action(idaapi.action_desc_t(
+        cls.get_name(),
+        instance.get_label(),
+        instance
+        ))
+
+  @classmethod
+  def unregister(cls):
+    idaapi.unregister_action(cls.get_name())
+
+  @classmethod
+  def update(cls, ctx):
+    if ctx.form_type == idaapi.BWN_STRINGS:
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
+    else:
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
+
+
 class VTGrepWildcards(idaapi.action_handler_t):
-  """IDA interface for VTplugin.search_with_wildcards() method."""
+  """Performs the right click operation: Search for wildcards."""
 
   @classmethod
   def get_name(cls):
@@ -50,19 +99,37 @@ class VTGrepWildcards(idaapi.action_handler_t):
 
   @classmethod
   def activate(cls, ctx):
-    cls.plugin.search_with_wildcards()
+    cls.plugin.search_with_wildcards(False)
     return 1
 
   @classmethod
   def update(cls, ctx):
     if ctx.form_type == idaapi.BWN_DISASM:
-      return idaapi.AST_ENABLE_FOR_FORM
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
-      return idaapi.AST_DISABLE_FOR_FORM
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
+
+
+class VTGrepWildCardsStrict(VTGrepWildcards):
+  """Performs the right click operation: Search for wildcards (strict)."""
+
+  @classmethod
+  def activate(cls, ctx):
+    cls.plugin.search_with_wildcards(True)
+    return 1
+
+
+class VTGrepWildCardsFunction(VTGrepWildcards):
+  """Performs the right click operation: Search for similar function."""
+
+  @classmethod
+  def activate(cls, ctx):
+    cls.plugin.search_function_with_wildcards()
+    return 1
 
 
 class VTGrepBytes(idaapi.action_handler_t):
-  """IDA interface for VTplugin.search_for_bytes() method."""
+  """Performs the right click operation: Search for bytes."""
 
   @classmethod
   def get_name(cls):
@@ -95,137 +162,119 @@ class VTGrepBytes(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
-      if ctx.form_type == idaapi.BWN_DISASM:
-        return idaapi.AST_ENABLE_FOR_FORM
-      else:
-        return idaapi.AST_DISABLE_FOR_FORM
+    if ctx.form_type == idaapi.BWN_DISASM:
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
+    else:
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
 
-class Popup(idaapi.UI_Hooks):
-  """Implements the right click operations in the UI."""
+class Popups(idaapi.UI_Hooks):
+  """Declares methods to be called on right click operations."""
 
-  if idaapi.IDA_SDK_VERSION >= 700:
-    # IDA >= 7
-
-    @staticmethod
-    def finish_populating_widget_popup(form, popup):
-      if idaapi.get_widget_type(form) == idaapi.BWN_DISASM:
-        idaapi.attach_action_to_popup(
-            form,
-            popup,
-            VTGrepWildcards.get_name(),
-            'VirusTotal/',
-            )
-        idaapi.attach_action_to_popup(
-            form,
-            popup,
-            VTGrepBytes.get_name(),
-            'VirusTotal/'
-            )
-  else:
-    # IDA < 7
-
-    @staticmethod
-    def finish_populating_tform_popup(form, popup):
-      if idaapi.get_tform_type(form) == idaapi.BWN_DISASM:
-        idaapi.attach_action_to_popup(
-            form,
-            popup,
-            VTGrepWildcards.get_name(),
-            'VirusTotal/',
-            )
-        idaapi.attach_action_to_popup(
-            form,
-            popup,
-            VTGrepBytes.get_name(),
-            'VirusTotal/'
-            )
+  @staticmethod
+  def finish_populating_widget_popup(form, popup):
+    if idaapi.get_widget_type(form) == idaapi.BWN_DISASM:
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          VTGrepBytes.get_name(),
+          'VirusTotal/'
+          )
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          VTGrepWildcards.get_name(),
+          'VirusTotal/',
+          )
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          VTGrepWildCardsStrict.get_name(),
+          'VirusTotal/',
+          )
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          VTGrepWildCardsFunction.get_name(),
+          'VirusTotal/',
+          )
+    elif idaapi.get_widget_type(form) == idaapi.BWN_STRINGS:
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          VTGrepStrings.get_name(),
+          'VirusTotal/')
 
 
 class VTplugin(idaapi.plugin_t):
   """VirusTotal plugin interface for IDA Pro."""
 
+  SUPPORTED_PROCESSORS = ['80286r', '80286p', '80386r', '80386p', '80486r',
+                          '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
+                          'p3', 'athlon', 'p4', 'metapc']
   flags = idaapi.PLUGIN_UNL
   comment = 'VirusTotal plugin for IDA Pro'
-  help = 'This plugin integrates some services from VirusTotal Enterprise'
-  wanted_name = 'VT_plugin'
+  help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
+  wanted_name = 'VT_Plugin'
   wanted_hotkey = ''
-  VERSION = '0.1'
 
   def init(self):
-    """Set up menu options and shows the welcoming message."""
-    self.menu = Popup()
+    """Set up menu hooks and implements search methods."""
+
+    self.menu = Popups()
     self.menu.hook()
+    arch_info = idaapi.get_inf_structure()
 
     try:
-      VTGrepWildcards.register(self, 'Search with wildcards')
-      VTGrepBytes.register(self, 'Search bytes')
-
-      if idaapi.IDA_SDK_VERSION >= 700:
-        idaapi.attach_action_to_menu(
-            'Edit/VirusTotal/',
-            VTGrepWildcards.get_name(),
-            idaapi.SETMENU_APP
-            )
-        idaapi.attach_action_to_menu(
-            'Edit/VirusTotal/',
-            VTGrepBytes.get_name(),
-            idaapi.SETMENU_APP
-            )
+      if arch_info.procName in self.SUPPORTED_PROCESSORS:
+        VTGrepWildcards.register(self, 'Search for similar code')
+        VTGrepWildCardsStrict.register(self, 'Search for similar code (strict)')
+        VTGrepWildCardsFunction.register(self, 'Search for similar function')
       else:
-        idaapi.add_menu_item(
-            'Edit/VirusTotal/',
-            VTGrepWildcards.get_name(),
-            '',
-            1,
-            self.searc_with_wildcards,
-            None
-            )
-        idaapi.add_menu_item(
-            'Edit/VirusTotal/',
-            VTGrepBytes.get_name(),
-            '',
-            1,
-            self.search_for_bytes,
-            None
-            )
-    except:
-      print '[VT plugin] ERROR! Unable to create menu items.'
-      pass
+        logging.info('\n - Processor detected: %s', arch_info.procName)
+        logging.info(' - Searching for similar code is not available.')
+      VTGrepBytes.register(self, 'Search for bytes')
+      VTGrepStrings.register(self, 'Search for string')
 
-    print '- - ' * 21
-    print 'VT plugin for IDA Pro v{0} (c) Google, 2019'.format(self.VERSION)
-    print 'VirusTotal integration plugin for IDA Pro 6/7'
-    print '\nSelect instructions and right click to search on VTGrep.'
-    print '- - ' * 21
+    except:
+      logging.error('[VT Plugin] Unable to register popups actions.')
 
     return idaapi.PLUGIN_KEEP
 
   @staticmethod
-  def search_with_wildcards():
-    if idaapi.IDA_SDK_VERSION >= 700:
-      search = vtgrep.VTGrepSearch(
-          idc.read_selection_start(),
-          idc.read_selection_end()
-          )
-    else:
-      sel, sel_start, sel_end = idaapi.read_selection()
-      search = vtgrep.VTGrepSearch(sel_start, sel_end)
+  def search_string(selected_string):
+    search_vt = vtgrep.VTGrepSearch(string=selected_string)
+    search_vt.search(False)
 
-    search.search(True)
+  @staticmethod
+  def search_with_wildcards(strict):
+    search_vt = vtgrep.VTGrepSearch(
+        addr_start=idc.read_selection_start(),
+        addr_end=idc.read_selection_end()
+        )
+    search_vt.search(True, strict)
+
+  @staticmethod
+  def search_function_with_wildcards():
+    addr_current = idc.get_screen_ea()
+    addr_func = idaapi.get_func(addr_current)
+
+    if not addr_func:
+      logging.error('[VT Plugin] Current address doesn\'t belong to a function')
+    else:
+      search_vt = vtgrep.VTGrepSearch(
+          addr_start=addr_func.start_ea,
+          addr_end=addr_func.end_ea
+          )
+      search_vt.search(True, False)
 
   @staticmethod
   def search_for_bytes():
-    if idaapi.IDA_SDK_VERSION >= 700:
-      search = vtgrep.VTGrepSearch(
-          idc.read_selection_start(),
-          idc.read_selection_end()
-          )
-    else:
-      sel, sel_start, sel_end = idaapi.read_selection()
-      search = vtgrep.VTGrepSearch(sel_start, sel_end)
-
-    search.search(False)
+    search_vt = vtgrep.VTGrepSearch(
+        addr_start=idc.read_selection_start(),
+        addr_end=idc.read_selection_end()
+        )
+    search_vt.search(False)
 
   @staticmethod
   def run(arg):
