@@ -178,7 +178,6 @@ class VTGrepSearch(object):
       inst_num_bytes = 1
 
     pattern += ' ' + '??' * (idc.get_item_size(addr) - inst_num_bytes) + ' '
-
     return pattern
 
   def _get_opcodes(self, addr, strict):
@@ -204,10 +203,10 @@ class VTGrepSearch(object):
       inst_len = idc.get_item_size(addr)
       drefs = [x for x in idautils.DataRefsFrom(addr)]
 
+      # Checks only if any operand constains a memory address
       if (drefs and
           ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
           op1_type in offsets_types or op2_type in offsets_types):
-          # Checks only if any operand constains a memory address
         pattern = self._get_instruction_bytes_wildcarded(
             pattern,
             addr,
@@ -215,11 +214,11 @@ class VTGrepSearch(object):
             op1_type,
             op2_type
             )
+      # Checks if the instruction is a CALL (near or far) or
+      # if it's a JMP (excluding near jumps)
       else:
         if ((mnem.itype == idaapi.NN_call) or
             (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near)):
-            # Checks if the instruction is a CALL (near or far) or
-            # if it's a JMP (excluding near jumps)
           pattern = self._get_instruction_bytes_wildcarded(
               pattern,
               addr,
@@ -227,8 +226,8 @@ class VTGrepSearch(object):
               op1_type,
               op2_type
               )
+        # In any other case, concatenate the raw bytes to the current string
         else:
-          # In any other case, concatenate the raw bytes to the current string
           pattern = idc.get_bytes(addr, inst_len).encode('hex')
       return pattern
     else: return 0
