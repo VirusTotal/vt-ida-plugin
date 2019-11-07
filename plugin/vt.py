@@ -38,7 +38,7 @@ else:
       format='%(message)s'
       )
 
-logging.info('\n** VT plugin for IDA Pro v0.2 (c) Google, 2019')
+logging.info('\n** VT plugin for IDA Pro v0.2beta (c) Google, 2019')
 logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7')
 logging.info('\n** Select area and right click to search on VTGrep.\n')
 
