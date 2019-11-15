@@ -41,21 +41,26 @@ class Bytes(object):
   def len(self):
     return len(self.bytes_stream)
 
-  def combine(self, next_object):
-    if next_object:
-      if isinstance(next_object, Bytes):
-        self.append(next_object)
+  def combinable(self, next_slice):
+    # Check if current slice can be combined with the next slice
+    if next_slice:
+      if not isinstance(next_slice, Bytes) and self.len() >= 8:
+        return False
+    elif self.len() >= 8:
+      return False
+    return True
+
+  def combine(self, next_slice):
+    # Combine current slice with the next one
+    if next_slice:
+      if isinstance(next_slice, Bytes):
+        self.append(next_slice)
         return self
       else:
-        if self.len() < 8:
-          wcs_stream = '?' * self.len()
-          next_object.append(wcs_stream)
-          return next_object
-        else: return -1
-    else:
-      if self.len() < 8:
-        return self
-      else: return -1
+        wcs_stream = '?' * self.len()
+        next_slice.append(wcs_stream)
+        return next_slice
+    else: return self
 
 
 class WildCards(object):
@@ -105,14 +110,20 @@ class WildCards(object):
         self.wcs_stream = '[{}]'.format(str(wcs_count)) + '?' * (wcs_len % 2)
         self.packed = True
 
-  def combine(self, next_object):
-    if next_object:
-      if isinstance(next_object, Bytes):
-        if next_object.len() < 8:
-          wcs_stream = '?' * next_object.len()
-          self.append(wcs_stream)
-        else: return -1
-      else: self.append(next_object)
+  def combinable(self, next_slice):
+    # Check if current slice can be combined with the next slice
+    if next_slice:
+      if isinstance(next_slice, Bytes) and next_slice.len() >= 8:
+        return False
+    return True
+
+  def combine(self, next_slice):
+    # Combine current slice with the next one
+    if next_slice:
+      if isinstance(next_slice, Bytes):
+        wcs_stream = '?' * next_slice.len()
+        self.append(wcs_stream)
+      else: self.append(next_slice)
     return self
 
 
@@ -129,16 +140,14 @@ class VTGrepSearch(object):
     - addr_start and addr_end: begining and ending of the area selected
   """
 
-  url = ''
   addr_start = 0
   addr_end = 0
-  search_string = ''
-  query_list = []
+  string_searching = False
   _MIN_QUERY_SIZE = 7      # number of bytes
   _MAX_QUERY_SIZE = 2048   # Maximun length of a query string
 
   def __init__(self, *args, **kwargs):
-    self.search_string = kwargs.get('string')
+    self.string_searching = kwargs.get('string')
     self.addr_start = kwargs.get('addr_start')
     self.addr_end = kwargs.get('addr_end')
 
@@ -146,6 +155,9 @@ class VTGrepSearch(object):
   def _get_instruction_bytes_wildcarded(pattern, addr, instr_type,
                                         op1_type, op2_type):
     """Replaces bytes related to offsets and memory locations with wildcards."""
+
+    type_calls = [idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni]
+    type_jumps = [idaapi.NN_jmp, idaapi.NN_jmpfi, idaapi.NN_jmpni]
 
     inst_prefix = idc.get_bytes(addr, 1).encode('hex')
     drefs = [x for x in idautils.DataRefsFrom(addr)]
@@ -161,14 +173,16 @@ class VTGrepSearch(object):
       inst_num_bytes = 2
 
     # CALLs or JUMPs using 2 bytes opcodes
-    elif inst_prefix == 'ff' and (instr_type == idaapi.NN_jmp or
-                                  instr_type == idaapi.NN_call):
+    elif inst_prefix == 'ff' and (instr_type in type_jumps or
+                                  instr_type in type_calls):
+
       pattern = idc.get_bytes(addr, 2).encode('hex')
       inst_num_bytes = 2
 
     # A PUSH instruction using an inmediate value (mem offset)
     elif (inst_prefix == 'ff' and drefs and
           (op1_type == idaapi.o_imm or op2_type == idaapi.o_imm)):
+
       pattern = idc.get_bytes(addr, 2).encode('hex')
       inst_num_bytes = 2
 
@@ -180,7 +194,8 @@ class VTGrepSearch(object):
     pattern += ' ' + '??' * (idc.get_item_size(addr) - inst_num_bytes) + ' '
     return pattern
 
-  def _get_opcodes(self, addr, strict):
+  @staticmethod
+  def _get_opcodes(addr, strict):
     """Replacing operands with wildcards when needed."""
 
     if strict:
@@ -196,8 +211,11 @@ class VTGrepSearch(object):
       op2_type = mnem.Op2.type
 
       logging.debug(
-          '[VTGREP] Instruction: %s',
-          idc.generate_disasm_line(addr, 0)
+          '[VTGREP] Instruction: %s  [%d, %d, %d]',
+          idc.generate_disasm_line(addr, 0),
+          mnem.itype,
+          op1_type,
+          op2_type
           )
 
       inst_len = idc.get_item_size(addr)
@@ -207,7 +225,7 @@ class VTGrepSearch(object):
       if (drefs and
           ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
           op1_type in offsets_types or op2_type in offsets_types):
-        pattern = self._get_instruction_bytes_wildcarded(
+        pattern = VTGrepSearch._get_instruction_bytes_wildcarded(
             pattern,
             addr,
             mnem.itype,
@@ -219,7 +237,7 @@ class VTGrepSearch(object):
       else:
         if ((mnem.itype == idaapi.NN_call) or
             (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near)):
-          pattern = self._get_instruction_bytes_wildcarded(
+          pattern = VTGrepSearch._get_instruction_bytes_wildcarded(
               pattern,
               addr,
               mnem.itype,
@@ -244,34 +262,34 @@ class VTGrepSearch(object):
       else:
         yield Bytes(qslice)
 
-  def _create_query(self, buf):
+  @staticmethod
+  def _process_buffer(buf):
     """Receives a string buffer and produces a query compatible with VTGrep."""
 
-    query_slices = self._generate_slices(buf)
-    query_list = []
+    query_slices = VTGrepSearch._generate_slices(buf)
+    tmp_list = []
 
     logging.debug('[VTGREP] Original query: %s', buf)
 
     for current in query_slices:
-      if not query_list:
-        query_list.append(current)
+      if not tmp_list:
+        tmp_list.append(current)
       else:
-        prev = len(query_list) - 1
-        qslice = query_list[prev].combine(current)
-
-        if qslice == -1:
-          query_list.append(current)
+        prev = len(tmp_list) - 1
+        if tmp_list[prev].combinable(current):
+          tmp_list[prev] = tmp_list[prev].combine(current)
         else:
-          query_list[prev] = qslice
+          tmp_list.append(current)
 
-    buf = ''.join(str(element.get()) for element in query_list)
-    return self._sanitize(query_list)
+    buf = ''.join(str(element.get()) for element in tmp_list)
+    return VTGrepSearch._sanitize(tmp_list)
 
-  def _sanitize(self, qlist):
+  @staticmethod
+  def _sanitize(query_list):
     """Applies some checks to the current query for VTGrep syntax compliance.
 
     Args:
-      qlist: list of slices that must be checked according to VTGrep syntax
+      query_list: list of slices that must be checked according to VTGrep syntax
 
     Checks performed:
       - No ending []
@@ -279,76 +297,63 @@ class VTGrepSearch(object):
       - No consecutive byte strings
       - each slice must be 4 bytes long, at the very least
     """
-    self.query_list = qlist
     modified = True
 
     while modified:
       modified = False
-      query_len = len(qlist)
+      query_len = len(query_list)
       qslice_index = 0
 
       for qslice_index in range(0, query_len):
         next_qslice_index = qslice_index + 1
 
         if (next_qslice_index) != query_len:
-          next_qslice = self.query_list[next_qslice_index]
-          qslice = self.query_list[qslice_index].combine(next_qslice)
-
-          if qslice != -1:
-            self.query_list[qslice_index] = qslice
-            self.query_list.pop(next_qslice_index)
+          next_qslice = query_list[next_qslice_index]
+          if query_list[qslice_index].combinable(next_qslice):
+            qslice = query_list[qslice_index].combine(next_qslice)
+            query_list[qslice_index] = qslice
+            query_list.pop(next_qslice_index)
             modified = True
             break
         else:  # Last slice
-          if self.query_list[qslice_index].combine(None) != -1:
-            self.query_list.pop(qslice_index)
+          if query_list[qslice_index].combinable(None):
+            query_list[qslice_index].combine(None)
+            query_list.pop(qslice_index)
             modified = True
           break
 
-    buf = ''.join(str(element.get()) for element in self.query_list)
+    buf = ''.join(str(element.get()) for element in query_list)
     logging.debug('[VTGREP] Optimized query: %s', buf)
     return buf
 
-  def search(self, wildcards=False, strict=False):
-    """Processes current selection and generates a valid query for VTGrep.
-
-    Args:
-      wildcards:
-        True:  search replacing offsets and memory locations with widlcards
-        False: search for a sequence of bytes
-      strict:
-        True:  All the inmediate values (constants) are wildcarded
-        False: Only values that are identified as offsets or memory addresses
-
-    Checks current lines selected in the disassembly window, call the
-    appropriate method for generating a valid query. Finally, open the
-    (default) web browser to launch the query.
-    """
+  def _create_query(self, wildcards, strict):
+    """Create a VTGrep query based on the current area selected."""
 
     current = self.addr_start
-    str_buf = ''
     len_query = 0
+    str_buf = ''
 
-    if self.search_string:
-      str_buf = self.search_string.encode('hex')
-      len_query = len(str_buf)
-    elif (self.addr_start == idaapi.BADADDR or
-          self.addr_end == idaapi.BADADDR):
+    # Check if current selection is in a valid range
+    if (self.addr_start == idaapi.BADADDR or
+        self.addr_end == idaapi.BADADDR):
       logging.error('[VTGREP] Select a valid area.')
-      exit
+      return None
     elif (self.addr_end - self.addr_start) > self._MAX_QUERY_SIZE:
       logging.error('[VTGREP] The area selected is too large.')
-      exit
-    else:
+      return None
+    else:  # Selected area is valid
 
-      if wildcards:
+      if wildcards:  # Search for similar code
         while current < self.addr_end:
           new_opcodes = self._get_opcodes(current, strict)
-          if new_opcodes == 0: break
-          else: str_buf += new_opcodes
+          if new_opcodes == 0:
+            break  # Unable to disassemble current address
+          else:
+            str_buf += new_opcodes
           current = idc.next_head(current)
-        if str_buf: str_buf = self._create_query(str_buf)
-      else:
+        if str_buf:
+          str_buf = self._process_buffer(str_buf)
+      else:  # Search bytes
         str_buf = idc.get_bytes(
             self.addr_start,
             self.addr_end - self.addr_start
@@ -356,17 +361,42 @@ class VTGrepSearch(object):
         str_buf = str_buf.encode('hex')
       len_query = len(str_buf)
 
+    # After creating the search string, checks if new size is valid
     if (len_query and self._MIN_QUERY_SIZE < len_query and
         len_query < self._MAX_QUERY_SIZE):
-
-      str_buf = '{' + str_buf + '}'
-      vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
-      self.url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
-
-      try:
-        webbrowser.open_new(self.url)
-      except:
-        logging.error('[VTGREP] While opening web browser.')
-      del self.query_list[:]
+      return str_buf
     else:
       logging.error('[VTGREP] Invalid query length or invalid area.')
+      return None
+
+  def search(self, wildcards=False, strict=False):
+    """Processes current selection and generates a valid query for VTGrep.
+
+    Args:
+      wildcards: search replacing offsets and memory locations with
+        widlcards (True) or look for a sequence of bytes (False)
+      strict: All the inmediate values (constants) are wildcarded (True)
+        or wildcard only values that are identified as offsets or
+        memory addresses (False)
+
+    Checks current lines selected in the disassembly window, call the
+    appropriate method for generating a valid query. Finally, open the
+    (default) web browser to launch the query.
+    """
+
+    str_buf = ''
+
+    if self.string_searching:
+      str_buf = self.string_searching.encode('hex')
+    else:
+      str_buf = self._create_query(wildcards, strict)
+
+    if str_buf is not None:
+      str_buf = '{' + str_buf + '}'
+      vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
+      url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
+
+      try:
+        webbrowser.open_new(url)
+      except:
+        logging.error('[VTGREP] Error while opening the web browser.')
