@@ -19,8 +19,6 @@ import hashlib
 import ida_kernwin
 import idaapi
 import idc
-import idc
-import logging
 import logging
 import os
 import requests
@@ -264,7 +262,6 @@ class VTpluginSetup(object):
   def show_warning():
     """Shows a popup window to ask for user consent in order to upload files."""
 
-    global warning_f
     warning_f = WarningForm()
     warning_f.Compile()
     change_config = warning_f.Execute()
@@ -284,11 +281,10 @@ class VTpluginSetup(object):
         self.auto_upload = True
       else:
         self.auto_upload = False
-      self.valid_setup = True
-
+      return True
     except:
       logging.error('[VT Plugin] Error reading the user config file.')
-      self.valid_setup = False
+      return False
 
   def write_config(self):
     """Write user's configuration file."""
@@ -304,8 +300,8 @@ class VTpluginSetup(object):
       config_file.close()
     except:
       logging.error('[VT Plugin] Error while creating user config file.')
-      self.valid_setup = False
-    self.valid_setup = True
+      return False
+    return True
 
   @staticmethod
   def upload_file():
@@ -337,45 +333,19 @@ class VTpluginSetup(object):
 
           response = requests.post(url, files=files, headers=params)
           if response.status_code == 200:
-            logging.debug('[VT_Plugin] Uploaded successfully.')
+            logging.debug('[VT Plugin] Uploaded successfully.')
           else:
-            logging.error('[VT_Plugin] Upload failed.')
-
+            logging.error('[VT Plugin] Upload failed.')
         else:
-          logging.debug('[VT_Plugin] File already available in VirusTotal.')
+          logging.debug('[VT Plugin] File already available in VirusTotal.')
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
     else:
       logging.error('[VT Plugin] Uploading error: input file path is invalid.')
 
-  def check_config(self):
-    """Read the user's configuration file if exists, or create it otherwise."""
+  def __init__(self, cfgfile):
 
-    ask_user = 0
-
-    if not os.path.exists(self.vt_cfgfile):
-      ask_user = self.show_warning()
-
-      if ask_user == 1:
-        self.auto_upload = True
-      elif ask_user == 0:
-        self.auto_upload = False
-      elif ask_user == -1:
-        self.valid_setup = False
-
-      if ask_user != -1:
-        self.write_config()
-    else:
-      self.read_config()
-
-    if self.auto_upload and self.valid_setup:
-      self.upload_file()
-
-    return self.valid_setup
-
-  def __init__(self):
-
-    self.vt_cfgfile = os.path.join(idaapi.get_user_idadir(), 'virustotal.conf')
+    self.vt_cfgfile = cfgfile
 
     if config.DEBUG:
       logging.basicConfig(
@@ -417,13 +387,31 @@ class VTplugin(idaapi.plugin_t):
   def init(self):
     """Set up menu hooks and implements search methods."""
 
-    self.menu = Popups()
-    self.menu.hook()
-    arch_info = idaapi.get_inf_structure()
+    valid_config = False
+    config_file = os.path.join(idaapi.get_user_idadir(), 'virustotal.conf')
+    vtsetup = VTpluginSetup(config_file)
 
-    vtsetup = VTpluginSetup()
+    if os.path.exists(config_file):
+      valid_config = vtsetup.read_config()
+    else:
+      answer = vtsetup.show_warning()
+      if answer == 1:
+        vtsetup.auto_upload = True
+        valid_config = vtsetup.write_config()
+      elif answer == 0:
+        vtsetup.auto_upload = False
+        valid_config = vtsetup.write_config()
+      elif answer == -1:
+        valid_config = False
 
-    if vtsetup.check_config():
+    if valid_config:
+      if vtsetup.auto_upload:
+        vtsetup.upload_file()
+
+      self.menu = Popups()
+      self.menu.hook()
+      arch_info = idaapi.get_inf_structure()
+
       try:
         if arch_info.procName in self.SUPPORTED_PROCESSORS:
           VTGrepWildcards.register(self, 'Search for similar code')
@@ -439,7 +427,8 @@ class VTplugin(idaapi.plugin_t):
         VTGrepStrings.register(self, 'Search for string')
       except:
         logging.error('[VT Plugin] Unable to register popups actions.')
-
+    else:
+      logging.info('[VT_Plugin] Plugin disabled, restart IDA to proceed. ')
     return idaapi.PLUGIN_KEEP
 
   @staticmethod

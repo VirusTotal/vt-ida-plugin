@@ -60,7 +60,8 @@ class Bytes(object):
         wcs_stream = '?' * self.len()
         next_slice.append(wcs_stream)
         return next_slice
-    else: return self
+    else:
+      return self
 
 
 class WildCards(object):
@@ -98,9 +99,11 @@ class WildCards(object):
       if question_index != -1:
         str_len = int(wcs_len.rstrip(']?')) * 2
         str_len += 1
-      else: str_len = int(wcs_len) * 2
+      else:
+        str_len = int(wcs_len) * 2
       return str_len
-    else: return len(self.wcs_stream)
+    else:
+      return len(self.wcs_stream)
 
   def pack(self):
     if not self.packed:
@@ -123,7 +126,8 @@ class WildCards(object):
       if isinstance(next_slice, Bytes):
         wcs_stream = '?' * next_slice.len()
         self.append(wcs_stream)
-      else: self.append(next_slice)
+      else:
+        self.append(next_slice)
     return self
 
 
@@ -140,24 +144,33 @@ class VTGrepSearch(object):
     - addr_start and addr_end: begining and ending of the area selected
   """
 
-  addr_start = 0
-  addr_end = 0
-  string_searching = False
-  _MIN_QUERY_SIZE = 7      # number of bytes
+  _MIN_QUERY_SIZE = 5      # number of bytes
   _MAX_QUERY_SIZE = 2048   # Maximun length of a query string
 
   def __init__(self, *args, **kwargs):
-    self.string_searching = kwargs.get('string')
-    self.addr_start = kwargs.get('addr_start')
-    self.addr_end = kwargs.get('addr_end')
+    self.string_searching = kwargs.get('string', False)
+    self.addr_start = kwargs.get('addr_start', 0)
+    self.addr_end = kwargs.get('addr_end', 0)
 
   @staticmethod
-  def _get_instruction_bytes_wildcarded(pattern, addr, instr_type,
-                                        op1_type, op2_type):
-    """Replaces bytes related to offsets and memory locations with wildcards."""
+  def __get_instruction_bytes_wildcarded(pattern, addr, instr_type,
+                                         op1_type, op2_type):
+    """Replaces bytes related to offsets and memory locations with wildcards.
 
-    type_calls = [idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni]
-    type_jumps = [idaapi.NN_jmp, idaapi.NN_jmpfi, idaapi.NN_jmpni]
+    Args:
+      pattern: current buffer containing the bytes of the current instruction.
+      addr: the address of the current instruction to be wildcarded
+      instr_type: type of the current instruction
+      op1_type: type of the first operand
+      op2_type: type of the second operand
+
+    Returns:
+      String: hex-encoded representation of the bytes obtained at addr where
+              all the operands that refers to memmory addresses are wildcarded.
+    """
+
+    type_calls = frozenset([idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni])
+    type_jumps = frozenset([idaapi.NN_jmp, idaapi.NN_jmpfi, idaapi.NN_jmpni])
 
     inst_prefix = idc.get_bytes(addr, 1).encode('hex')
     drefs = [x for x in idautils.DataRefsFrom(addr)]
@@ -195,8 +208,16 @@ class VTGrepSearch(object):
     return pattern
 
   @staticmethod
-  def _get_opcodes(addr, strict):
-    """Replacing operands with wildcards when needed."""
+  def __get_opcodes(addr, strict):
+    """Get current bytes of the instruction pointed at addr.
+
+    Args:
+      addr: address of the current instruction
+      strict: be more restrictive when applying wildcards (True) or not (False)
+
+    Returns:
+      String: hex-encoded representation of the bytes obtained at addr
+    """
 
     if strict:
       offsets_types = {idaapi.o_far, idaapi.o_mem, idaapi.o_imm}
@@ -225,7 +246,7 @@ class VTGrepSearch(object):
       if (drefs and
           ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
           op1_type in offsets_types or op2_type in offsets_types):
-        pattern = VTGrepSearch._get_instruction_bytes_wildcarded(
+        pattern = VTGrepSearch.__get_instruction_bytes_wildcarded(
             pattern,
             addr,
             mnem.itype,
@@ -237,7 +258,7 @@ class VTGrepSearch(object):
       else:
         if ((mnem.itype == idaapi.NN_call) or
             (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near)):
-          pattern = VTGrepSearch._get_instruction_bytes_wildcarded(
+          pattern = VTGrepSearch.__get_instruction_bytes_wildcarded(
               pattern,
               addr,
               mnem.itype,
@@ -251,11 +272,10 @@ class VTGrepSearch(object):
     else: return 0
 
   @staticmethod
-  def _generate_slices(buf):
+  def __generate_slices(buf):
     """Read a string buffer and generates wildcards and bytes objects."""
 
     list_slices = buf.split()
-
     for qslice in list_slices:
       if qslice[0] == '?':
         yield WildCards(qslice)
@@ -263,29 +283,7 @@ class VTGrepSearch(object):
         yield Bytes(qslice)
 
   @staticmethod
-  def _process_buffer(buf):
-    """Receives a string buffer and produces a query compatible with VTGrep."""
-
-    query_slices = VTGrepSearch._generate_slices(buf)
-    tmp_list = []
-
-    logging.debug('[VTGREP] Original query: %s', buf)
-
-    for current in query_slices:
-      if not tmp_list:
-        tmp_list.append(current)
-      else:
-        prev = len(tmp_list) - 1
-        if tmp_list[prev].combinable(current):
-          tmp_list[prev] = tmp_list[prev].combine(current)
-        else:
-          tmp_list.append(current)
-
-    buf = ''.join(str(element.get()) for element in tmp_list)
-    return VTGrepSearch._sanitize(tmp_list)
-
-  @staticmethod
-  def _sanitize(query_list):
+  def __sanitize(query_list):
     """Applies some checks to the current query for VTGrep syntax compliance.
 
     Args:
@@ -296,6 +294,9 @@ class VTGrepSearch(object):
       - No consecutive [][]
       - No consecutive byte strings
       - each slice must be 4 bytes long, at the very least
+
+    Returns:
+      String: hex-encoded representation of the bytes obtained at addr
     """
     modified = True
 
@@ -326,11 +327,43 @@ class VTGrepSearch(object):
     logging.debug('[VTGREP] Optimized query: %s', buf)
     return buf
 
-  def _create_query(self, wildcards, strict):
-    """Create a VTGrep query based on the current area selected."""
+  @staticmethod
+  def __reduce_query(buf):
+    """Receives a string buffer and returns a shorter version when possible.
+    
+    Receives a string buffer and produces a simplifyed version of the
+    query string, where adjacents slices are combined when possible.
+    
+    Returns a list of slices where each slice can be a Bytes or 
+    WildCard object.
+    """
+
+    query_slices = VTGrepSearch.__generate_slices(buf)
+    reduced_list = []
+
+    logging.debug('[VTGREP] Original query: %s', buf)
+
+    for current in query_slices:
+      if not reduced_list:
+        reduced_list.append(current)
+      else:
+        prev = len(reduced_list) - 1
+        if reduced_list[prev].combinable(current):
+          reduced_list[prev] = reduced_list[prev].combine(current)
+        else:
+          reduced_list.append(current)
+
+    buf = ''.join(str(element.get()) for element in reduced_list)
+    return reduced_list
+
+  def __create_query(self, wildcards, strict):
+    """Returns a buffer containing all the bytes of the instructions selected.
+
+      If there are instructions that contain offset or memory addresses,
+      their operands will be wildcarded.
+    """
 
     current = self.addr_start
-    len_query = 0
     str_buf = ''
 
     # Check if current selection is in a valid range
@@ -345,28 +378,22 @@ class VTGrepSearch(object):
 
       if wildcards:  # Search for similar code
         while current < self.addr_end:
-          new_opcodes = self._get_opcodes(current, strict)
+          new_opcodes = VTGrepSearch.__get_opcodes(current, strict)
           if new_opcodes == 0:
             break  # Unable to disassemble current address
           else:
             str_buf += new_opcodes
           current = idc.next_head(current)
-        if str_buf:
-          str_buf = self._process_buffer(str_buf)
       else:  # Search bytes
         str_buf = idc.get_bytes(
             self.addr_start,
             self.addr_end - self.addr_start
             )
         str_buf = str_buf.encode('hex')
-      len_query = len(str_buf)
 
-    # After creating the search string, checks if new size is valid
-    if (len_query and self._MIN_QUERY_SIZE < len_query and
-        len_query < self._MAX_QUERY_SIZE):
+    if str_buf:
       return str_buf
     else:
-      logging.error('[VTGREP] Invalid query length or invalid area.')
       return None
 
   def search(self, wildcards=False, strict=False):
@@ -380,7 +407,7 @@ class VTGrepSearch(object):
         memory addresses (False)
 
     Checks current lines selected in the disassembly window, call the
-    appropriate method for generating a valid query. Finally, open the
+    appropriate method to generate a valid query. Finally, open the
     (default) web browser to launch the query.
     """
 
@@ -389,14 +416,25 @@ class VTGrepSearch(object):
     if self.string_searching:
       str_buf = self.string_searching.encode('hex')
     else:
-      str_buf = self._create_query(wildcards, strict)
+      str_buf = self.__create_query(wildcards, strict)
+      if wildcards and str_buf is not None:
+        str_buf = self.__sanitize(self.__reduce_query(str_buf))
 
+    # After creating the search string, checks if new size is valid
     if str_buf is not None:
-      str_buf = '{' + str_buf + '}'
-      vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
-      url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
+      len_query = len(str_buf)
 
-      try:
-        webbrowser.open_new(url)
-      except:
-        logging.error('[VTGREP] Error while opening the web browser.')
+      if (len_query and self._MIN_QUERY_SIZE < len_query and
+          len_query < self._MAX_QUERY_SIZE):
+
+        str_buf = '{' + str_buf + '}'
+        vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
+        url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
+
+        try:
+          webbrowser.open_new(url)
+        except:
+          logging.error('[VTGREP] Error while opening the web browser.')
+    else:
+      logging.error('[VTGREP] Invalid query length or invalid area.')
+    
