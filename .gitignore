@@ -105,4 +105,4 @@ venv.bak/
 .vscode/settings.json
 .vscode/notes.txt
 plugin/vt_ida/config.py
-plugin/vt_ida/config.py
+

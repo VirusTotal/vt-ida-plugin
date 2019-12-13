@@ -22,7 +22,7 @@ import webbrowser
 
 
 class Bytes(object):
-  """Class that represents a slice of bytes in a search query."""
+  """Class representing a slice of bytes in a search query."""
 
   bytes_stream = ''
 
@@ -65,7 +65,7 @@ class Bytes(object):
 
 
 class WildCards(object):
-  """Class that represents a slice of wildcards in a search query."""
+  """Class representing a slice of wildcards in a search query."""
 
   wcs_stream = ''
   packed = False
@@ -114,7 +114,7 @@ class WildCards(object):
         self.packed = True
 
   def combinable(self, next_slice):
-    # Check if current slice can be combined with the next slice
+    # Check if the current slice can be combined with the next slice
     if next_slice:
       if isinstance(next_slice, Bytes) and next_slice.len() >= 8:
         return False
@@ -141,7 +141,7 @@ class VTGrepSearch(object):
 
     The constructor has three parameters:
     - string: when searching a string selected in the strings window
-    - addr_start and addr_end: begining and ending of the area selected
+    - addr_start and addr_end: begining and ending of an area cointainig code.
   """
 
   _MIN_QUERY_SIZE = 5      # number of bytes
@@ -155,7 +155,7 @@ class VTGrepSearch(object):
   @staticmethod
   def __get_instruction_bytes_wildcarded(pattern, addr, instr_type,
                                          op1_type, op2_type):
-    """Replaces bytes related to offsets and memory locations with wildcards.
+    """Replaces bytes related to memory addresses with wildcards.
 
     Args:
       pattern: current buffer containing the bytes of the current instruction.
@@ -335,7 +335,7 @@ class VTGrepSearch(object):
     query string, where adjacents slices are combined when possible.
     
     Returns a list of slices where each slice can be a Bytes or 
-    WildCard object.
+    WildCards object.
     """
 
     query_slices = VTGrepSearch.__generate_slices(buf)
@@ -359,7 +359,7 @@ class VTGrepSearch(object):
   def __create_query(self, wildcards, strict):
     """Returns a buffer containing all the bytes of the instructions selected.
 
-      If there are instructions that contain offset or memory addresses,
+      If there are instructions that contain offsets or memory addresses,
       their operands will be wildcarded.
     """
 
