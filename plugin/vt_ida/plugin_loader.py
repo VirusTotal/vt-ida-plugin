@@ -25,7 +25,8 @@ import requests
 from vt_ida import config
 from vt_ida import vtgrep
 
-VT_VERSION = '0.5'
+VT_IDA_PLUGIN_VERSION = '0.5'
+
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -258,8 +259,9 @@ class VTpluginSetup(object):
   auto_upload = True
   vt_cfgfile = ''
   valid_setup = False
-  file_path=''
-  file_name=''
+  file_path = ''
+  file_name = ''
+  vt_plugin_logger = None
 
   @staticmethod
   def show_warning():
@@ -306,18 +308,18 @@ class VTpluginSetup(object):
       return False
     return True
 
-  def check_hash(self):
+  def check_file_missing_in_VT(self):
     """Return True if the file is not available at VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_VERSION
-    headers = { 
-      'User-Agent': user_agent,
-      'x-apikey': '', 
-      'Accept': 'application/json'
+    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_IDA_PLUGIN_VERSION
+    headers = {
+        'User-Agent': user_agent,
+        'x-apikey': '',
+        'Accept': 'application/json'
     }
     headers['x-apikey'] = config.API_KEY
 
-    if os.path.isfile(self.file_path): 
+    if os.path.isfile(self.file_path):
       # Only checks the hash value when the input file is available
 
       hash_f = hashlib.sha256()
@@ -329,44 +331,49 @@ class VTpluginSetup(object):
       file_hash = hash_f.hexdigest()
       url = 'https://www.virustotal.com/api/v3/files/%s' % file_hash
 
+      logging.debug('[VT Plugin] Checking hash: %s', file_hash)
       try:
-        logging.debug('[VT Plugin] Checking hash: %s', file_hash)
         response = requests.get(url, headers=headers)
-        if response.status_code == 404:  # file not found in VirusTotal
-          return True
-        else:
-          logging.debug('[VT Plugin] File already available in VirusTotal.')
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
 
+      if response.status_code == 404:  # file not found in VirusTotal
+        return True
+      elif response.status_code == 200:
+        logging.debug('[VT Plugin] File already available in VirusTotal.')
+    else:
+      if self.auto_upload:
+        logging.error('[VT Plugin] Input file path is invalid.')
+      else:
+        logging.debug('[VT Plugin] Input file path is invalid.')
     return False
 
-  def upload_file(self):
+  def upload_file_to_VT(self):
     """Upload input file to VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin upload - v' + VT_VERSION
+    user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
 
-    headers = { 
-      'User-Agent': user_agent,
-      'x-apikey': '', 
-      'Accept': 'application/json'
+    headers = {
+        'User-Agent': user_agent,
+        'x-apikey': '',
+        'Accept': 'application/json'
     }
     headers['x-apikey'] = config.API_KEY
 
     if os.path.isfile(self.file_path):
+      logging.info('[VT_Plugin] Uploading input file to VirusTotal.')
+      url = 'https://www.virustotal.com/api/v3/files'
+      files = {'file': (self.file_name, open(self.file_path, 'rb'))}
+
       try:
-        logging.info('[VT_Plugin] Uploading input file to VirusTotal.')
-        url = 'https://www.virustotal.com/api/v3/files'
-        files = {'file': (self.file_name, open(self.file_path, 'rb'))}
-
         response = requests.post(url, files=files, headers=headers)
-
-        if response.status_code == 200:
-          logging.debug('[VT Plugin] Uploaded successfully.')
-        else:
-          logging.error('[VT Plugin] Upload failed.')
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+
+      if response.status_code == 200:
+        logging.debug('[VT Plugin] Uploaded successfully.')
+      else:
+        logging.error('[VT Plugin] Upload failed.')
     else:
       logging.error('[VT Plugin] Uploading error: input file path is invalid.')
 
@@ -387,8 +394,11 @@ class VTpluginSetup(object):
           level=logging.INFO,
           format='%(message)s'
           )
-
-    logging.info('\n** VT Plugin for IDA Pro v%s (c) Google, 2019', VT_VERSION)
+    
+    logging.info(
+        '\n** VT Plugin for IDA Pro v%s (c) Google, 2019',
+        VT_IDA_PLUGIN_VERSION
+    )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7')
 
     logging.info('\n** Select an area in the Disassembly Window and right')
@@ -433,8 +443,8 @@ class VTplugin(idaapi.plugin_t):
         valid_config = False
 
     if valid_config:
-      if vtsetup.check_hash() and vtsetup.auto_upload:
-        vtsetup.upload_file()
+      if vtsetup.check_file_missing_in_VT() and vtsetup.auto_upload:
+        vtsetup.upload_file_to_VT()
 
       self.menu = Popups()
       self.menu.hook()
