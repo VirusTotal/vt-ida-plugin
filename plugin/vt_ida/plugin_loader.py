@@ -318,7 +318,7 @@ class VTpluginSetup(object):
     headers['x-apikey'] = config.API_KEY
 
     if os.path.isfile(self.file_path): 
-      # Only checks hash value when file is available
+      # Only checks the hash value when the input file is available
 
       hash_f = hashlib.sha256()
       file_r = open(self.file_path, 'rb')
