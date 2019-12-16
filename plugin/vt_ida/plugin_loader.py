@@ -25,6 +25,7 @@ import requests
 from vt_ida import config
 from vt_ida import vtgrep
 
+VT_VERSION = '0.5'
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -257,6 +258,8 @@ class VTpluginSetup(object):
   auto_upload = True
   vt_cfgfile = ''
   valid_setup = False
+  file_path=''
+  file_name=''
 
   @staticmethod
   def show_warning():
@@ -303,18 +306,22 @@ class VTpluginSetup(object):
       return False
     return True
 
-  @staticmethod
-  def upload_file():
-    """Upload input file to VirusTotal."""
+  def check_hash(self):
+    """Return True if the file is not available at VirusTotal."""
 
-    file_path = idaapi.get_input_file_path()
-    file_name = idc.get_root_filename()
-    params = {'x-apikey': '', 'Accept': 'application/json'}
-    params['x-apikey'] = config.API_KEY
+    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_VERSION
+    headers = { 
+      'User-Agent': user_agent,
+      'x-apikey': '', 
+      'Accept': 'application/json'
+    }
+    headers['x-apikey'] = config.API_KEY
 
-    if os.path.isfile(file_path):
+    if os.path.isfile(self.file_path): 
+      # Only checks hash value when file is available
+
       hash_f = hashlib.sha256()
-      file_r = open(file_path, 'rb')
+      file_r = open(self.file_path, 'rb')
 
       for file_buffer in iter(lambda: file_r.read(8192), b''):
         hash_f.update(file_buffer)
@@ -324,28 +331,49 @@ class VTpluginSetup(object):
 
       try:
         logging.debug('[VT Plugin] Checking hash: %s', file_hash)
-        response = requests.get(url, headers=params)
+        response = requests.get(url, headers=headers)
         if response.status_code == 404:  # file not found in VirusTotal
-
-          logging.info('[VT_Plugin] Uploading input file to VirusTotal.')
-          url = 'https://www.virustotal.com/api/v3/files'
-          files = {'file': (file_name, open(file_path, 'rb'))}
-
-          response = requests.post(url, files=files, headers=params)
-          if response.status_code == 200:
-            logging.debug('[VT Plugin] Uploaded successfully.')
-          else:
-            logging.error('[VT Plugin] Upload failed.')
+          return True
         else:
           logging.debug('[VT Plugin] File already available in VirusTotal.')
+      except:
+        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+
+    return False
+
+  def upload_file(self):
+    """Upload input file to VirusTotal."""
+
+    user_agent = 'IDA Pro VT Plugin upload - v' + VT_VERSION
+
+    headers = { 
+      'User-Agent': user_agent,
+      'x-apikey': '', 
+      'Accept': 'application/json'
+    }
+    headers['x-apikey'] = config.API_KEY
+
+    if os.path.isfile(self.file_path):
+      try:
+        logging.info('[VT_Plugin] Uploading input file to VirusTotal.')
+        url = 'https://www.virustotal.com/api/v3/files'
+        files = {'file': (self.file_name, open(self.file_path, 'rb'))}
+
+        response = requests.post(url, files=files, headers=headers)
+
+        if response.status_code == 200:
+          logging.debug('[VT Plugin] Uploaded successfully.')
+        else:
+          logging.error('[VT Plugin] Upload failed.')
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
     else:
       logging.error('[VT Plugin] Uploading error: input file path is invalid.')
 
   def __init__(self, cfgfile):
-
     self.vt_cfgfile = cfgfile
+    self.file_path = idaapi.get_input_file_path()
+    self.file_name = idc.get_root_filename()
 
     if config.DEBUG:
       logging.basicConfig(
@@ -360,7 +388,7 @@ class VTpluginSetup(object):
           format='%(message)s'
           )
 
-    logging.info('\n** VT Plugin for IDA Pro v0.3beta (c) Google, 2019')
+    logging.info('\n** VT Plugin for IDA Pro v%s (c) Google, 2019', VT_VERSION)
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7')
 
     logging.info('\n** Select an area in the Disassembly Window and right')
@@ -395,17 +423,17 @@ class VTplugin(idaapi.plugin_t):
       valid_config = vtsetup.read_config()
     else:
       answer = vtsetup.show_warning()
-      if answer == 1:
+      if answer == 1:     # OK
         vtsetup.auto_upload = True
         valid_config = vtsetup.write_config()
-      elif answer == 0:
+      elif answer == 0:   # NO
         vtsetup.auto_upload = False
         valid_config = vtsetup.write_config()
-      elif answer == -1:
+      elif answer == -1:  # Cancel
         valid_config = False
 
     if valid_config:
-      if vtsetup.auto_upload:
+      if vtsetup.check_hash() and vtsetup.auto_upload:
         vtsetup.upload_file()
 
       self.menu = Popups()
