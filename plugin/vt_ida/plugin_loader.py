@@ -25,7 +25,7 @@ import requests
 from vt_ida import config
 from vt_ida import vtgrep
 
-VT_IDA_PLUGIN_VERSION = '0.5'
+VT_IDA_PLUGIN_VERSION = '0.6'
 
 
 def PLUGIN_ENTRY():
@@ -361,7 +361,7 @@ class VTpluginSetup(object):
     headers['x-apikey'] = config.API_KEY
 
     if os.path.isfile(self.file_path):
-      logging.info('[VT_Plugin] Uploading input file to VirusTotal.')
+      logging.info('[VT Plugin] Uploading input file to VirusTotal.')
       url = 'https://www.virustotal.com/api/v3/files'
       files = {'file': (self.file_name, open(self.file_path, 'rb'))}
 
@@ -382,6 +382,8 @@ class VTpluginSetup(object):
     self.file_path = idaapi.get_input_file_path()
     self.file_name = idc.get_root_filename()
 
+    logging.getLogger(__name__).addHandler(logging.NullHandler())
+
     if config.DEBUG:
       logging.basicConfig(
           stream=sys.stdout,
@@ -394,7 +396,7 @@ class VTpluginSetup(object):
           level=logging.INFO,
           format='%(message)s'
           )
-    
+
     logging.info(
         '\n** VT Plugin for IDA Pro v%s (c) Google, 2019',
         VT_IDA_PLUGIN_VERSION
@@ -406,7 +408,7 @@ class VTpluginSetup(object):
     logging.info('** string in the Strings Window.\n')
 
     if not config.API_KEY:
-      logging.info('[VT_Plugin] No API KEY defined in the \'config.py\' file. ')
+      logging.info('[VT Plugin] No API KEY defined in the \'config.py\' file. ')
       return None
 
 
@@ -466,7 +468,7 @@ class VTplugin(idaapi.plugin_t):
       except:
         logging.error('[VT Plugin] Unable to register popups actions.')
     else:
-      logging.info('[VT_Plugin] Plugin disabled, restart IDA to proceed. ')
+      logging.info('[VT Plugin] Plugin disabled, restart IDA to proceed. ')
     return idaapi.PLUGIN_KEEP
 
   @staticmethod
