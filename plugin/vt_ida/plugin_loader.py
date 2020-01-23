@@ -14,7 +14,10 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import sys
-import ConfigParser
+try:
+  import ConfigParser as configparser
+except ImportError:
+  import configparser
 import hashlib
 import ida_kernwin
 import idaapi
@@ -25,7 +28,7 @@ import requests
 from vt_ida import config
 from vt_ida import vtgrep
 
-VT_IDA_PLUGIN_VERSION = '0.6'
+VT_IDA_PLUGIN_VERSION = '0.7'
 
 
 def PLUGIN_ENTRY():
@@ -278,7 +281,7 @@ class VTpluginSetup(object):
     """Read user's configuration file."""
 
     logging.debug('[VT Plugin] Reading user config file: %s', self.vt_cfgfile)
-    config_file = ConfigParser.RawConfigParser()
+    config_file = configparser.RawConfigParser()
     config_file.read(self.vt_cfgfile)
 
     try:
@@ -297,10 +300,10 @@ class VTpluginSetup(object):
     logging.debug('[VT Plugin] Writing user config file: %s', self.vt_cfgfile)
 
     try:
-      parser = ConfigParser.ConfigParser()
+      parser = configparser.ConfigParser()
       config_file = open(self.vt_cfgfile, 'w')
       parser.add_section('General')
-      parser.set('General', 'auto_upload', self.auto_upload)
+      parser.set('General', 'auto_upload', str(self.auto_upload))
       parser.write(config_file)
       config_file.close()
     except:
@@ -428,6 +431,7 @@ class VTplugin(idaapi.plugin_t):
     """Set up menu hooks and implements search methods."""
 
     valid_config = False
+    self.menu = None
     config_file = os.path.join(idaapi.get_user_idadir(), 'virustotal.conf')
     vtsetup = VTpluginSetup(config_file)
 
@@ -459,7 +463,7 @@ class VTplugin(idaapi.plugin_t):
               self,
               'Search for similar code (strict)'
           )
-          VTGrepWildCardsFunction.register(self, 'Search for similar function')
+          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
           logging.info('\n - Processor detected: %s', arch_info.procName)
           logging.info(' - Searching for similar code is not available.')
