@@ -17,6 +17,7 @@ import binascii
 import idaapi
 import idautils
 import idc
+import ida_kernwin
 import logging
 import webbrowser
 try:
@@ -249,7 +250,7 @@ class VTGrepSearch(object):
       inst_len = idc.get_item_size(addr)
       drefs = [x for x in idautils.DataRefsFrom(addr)]
 
-      # Checks only if any operand constains a memory address
+      # Checks if any operand constains a memory address
       if (drefs and
           ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
           op1_type in offsets_types or op2_type in offsets_types):
@@ -437,12 +438,19 @@ class VTGrepSearch(object):
         str_buf = self.__sanitize(self.__reduce_query(str_buf))
 
     # After creating the search string, checks if new size is valid
-    if str_buf is not None:
+    if str_buf is None:
+      logging.error('[VTGREP] Invalid query length or area selected.')
+      ida_kernwin.warning('Invalid query length or area selected.')
+    else:
       len_query = len(str_buf)
 
-      if (len_query and self._MIN_QUERY_SIZE < len_query and
-          len_query < self._MAX_QUERY_SIZE):
-
+      if (len_query and self._MIN_QUERY_SIZE >= len_query):
+        logging.error('[VTGREP] The query produced is too small.')
+        ida_kernwin.warning('The query produced is too small.')
+      elif (len_query and len_query > self._MAX_QUERY_SIZE):
+        logging.error('[VTGREP] The query produced is too big.')
+        ida_kernwin.warning('The query produced is too big.')
+      else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
         url = 'https://{}'.format(quote(vtgrep_url.format(str_buf)))
@@ -451,6 +459,7 @@ class VTGrepSearch(object):
           webbrowser.open_new(url)
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
-    else:
-      logging.error('[VTGREP] Invalid query length or invalid area.')
+          ida_kernwin.warning('Error while opening the web browser.')
+
+      
     
