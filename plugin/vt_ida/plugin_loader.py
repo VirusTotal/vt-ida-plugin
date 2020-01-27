@@ -21,6 +21,7 @@ import idc
 import logging
 import os
 import requests
+import threading
 from vt_ida import config
 from vt_ida import vtgrep
 try:
@@ -29,7 +30,6 @@ except ImportError:
   import configparser
 
 VT_IDA_PLUGIN_VERSION = '0.7'
-
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -251,6 +251,91 @@ to stop using this plugin.
 })
 
 
+class CheckSample(threading.Thread):
+  auto_upload = False
+  input_file = ''
+
+  def __init__(self, upload, path):
+    self.auto_upload = upload
+    self.input_file = path
+    threading.Thread.__init__(self)
+
+  def check_file_missing_in_VT(self):
+    """Return True if the file is not available at VirusTotal."""
+
+    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_IDA_PLUGIN_VERSION
+    headers = {
+        'User-Agent': user_agent,
+        'Accept': 'application/json'
+    }
+
+    if os.path.isfile(self.input_file):
+      # Only checks the hash value when the input file is available
+
+      hash_f = hashlib.sha256()
+
+      try:
+        file_r = open(self.input_file, 'rb')
+      except:
+        logging.debug('[VT Plugin] Can\'t load the input file.')
+        return False
+
+      for file_buffer in iter(lambda: file_r.read(8192), b''):
+        hash_f.update(file_buffer)
+
+      file_hash = hash_f.hexdigest()
+      url = 'https://www.virustotal.com/ui/files/%s' % file_hash
+
+      logging.debug('[VT Plugin] Checking hash: %s', file_hash)
+      try:
+        response = requests.get(url, headers=headers)
+      except:
+        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+        return False
+
+      if response.status_code == 404:  # file not found in VirusTotal
+        return True
+      elif response.status_code == 200:
+        logging.debug('[VT Plugin] File already available in VirusTotal.')
+    else:
+      if self.auto_upload:
+        logging.error('[VT Plugin] The input file path is invalid.')
+      else:
+        logging.debug('[VT Plugin] The input file path is invalid.')
+    return False
+
+  def upload_file_to_VT(self):
+    """Upload input file to VirusTotal."""
+
+    user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
+
+    headers = {
+        'User-Agent': user_agent,
+        'Accept': 'application/json'
+    }
+
+    if os.path.isfile(self.input_file):
+      logging.info('[VT Plugin] Uploading input file to VirusTotal.')
+      url = 'https://www.virustotal.com/ui/files'
+      files = {'file': (self.input_file, open(self.input_file, 'rb'))}
+
+      try:
+        response = requests.post(url, files=files, headers=headers)
+      except:
+        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+
+      if response.status_code == 200:
+        logging.debug('[VT Plugin] Uploaded successfully.')
+      else:
+        logging.error('[VT Plugin] Upload failed.')
+    else:
+      logging.error('[VT Plugin] Uploading error: input file path is invalid.')
+
+  def run(self):
+    if self.check_file_missing_in_VT() and self.auto_upload:
+      self.upload_file_to_VT()
+
+
 class VTpluginSetup(object):
   """Check and setup global parameters."""
 
@@ -327,80 +412,7 @@ class VTpluginSetup(object):
         return True
     return False
 
-  def check_file_missing_in_VT(self):
-    """Return True if the file is not available at VirusTotal."""
-
-    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_IDA_PLUGIN_VERSION
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
-
-    if os.path.isfile(self.file_path):
-      # Only checks the hash value when the input file is available
-
-      hash_f = hashlib.sha256()
-
-      try:
-        file_r = open(self.file_path, 'rb')
-      except:
-        logging.debug('[VT Plugin] Can\'t load the input file.')
-        return False
-
-      for file_buffer in iter(lambda: file_r.read(8192), b''):
-        hash_f.update(file_buffer)
-
-      file_hash = hash_f.hexdigest()
-      url = 'https://www.virustotal.com/ui/files/%s' % file_hash
-
-      logging.debug('[VT Plugin] Checking hash: %s', file_hash)
-      try:
-        response = requests.get(url, headers=headers)
-      except:
-        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
-        return False
-
-      if response.status_code == 404:  # file not found in VirusTotal
-        return True
-      elif response.status_code == 200:
-        logging.debug('[VT Plugin] File already available in VirusTotal.')
-    else:
-      if self.auto_upload:
-        logging.error('[VT Plugin] The input file path is invalid.')
-      else:
-        logging.debug('[VT Plugin] The input file path is invalid.')
-    return False
-
-  def upload_file_to_VT(self):
-    """Upload input file to VirusTotal."""
-
-    user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
-
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
-
-    if os.path.isfile(self.file_path):
-      logging.info('[VT Plugin] Uploading input file to VirusTotal.')
-      url = 'https://www.virustotal.com/ui/files'
-      files = {'file': (self.file_name, open(self.file_path, 'rb'))}
-
-      ida_kernwin.show_wait_box('HIDECANCEL\nUploading file to VirusTotal...')
-
-      try:
-        response = requests.post(url, files=files, headers=headers)
-      except:
-        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
-
-      ida_kernwin.hide_wait_box()
-
-      if response.status_code == 200:
-        logging.debug('[VT Plugin] Uploaded successfully.')
-      else:
-        logging.error('[VT Plugin] Upload failed.')
-    else:
-      logging.error('[VT Plugin] Uploading error: input file path is invalid.')
+ 
 
   def __init__(self, cfgfile):
     self.vt_cfgfile = cfgfile
@@ -473,8 +485,8 @@ class VTplugin(idaapi.plugin_t):
         valid_config = False
 
     if valid_config:
-      if vtsetup.check_file_missing_in_VT() and vtsetup.auto_upload:
-        vtsetup.upload_file_to_VT()
+      checksample = CheckSample(vtsetup.auto_upload, vtsetup.file_path)
+      checksample.start()
 
       self.menu = Popups()
       self.menu.hook()
