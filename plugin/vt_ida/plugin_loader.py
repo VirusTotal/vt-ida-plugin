@@ -399,7 +399,7 @@ class VTpluginSetup(object):
         'User-Agent': user_agent,
         'Accept': 'application/json'
     }
-    url = 'http://analisisdemalware.com/VERSION'
+    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
 
     try:
       response = requests.get(url, headers=headers)
