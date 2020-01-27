@@ -252,8 +252,6 @@ to stop using this plugin.
 
 
 class CheckSample(threading.Thread):
-  auto_upload = False
-  input_file = ''
 
   def __init__(self, upload, path):
     self.auto_upload = upload
@@ -411,8 +409,6 @@ class VTpluginSetup(object):
       if float(response.text) > float(VT_IDA_PLUGIN_VERSION):
         return True
     return False
-
- 
 
   def __init__(self, cfgfile):
     self.vt_cfgfile = cfgfile
