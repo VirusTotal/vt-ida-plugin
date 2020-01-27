@@ -13,11 +13,6 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
-try:
-  import ConfigParser as configparser
-except ImportError:
-  import configparser
-
 import sys
 import hashlib
 import ida_kernwin
@@ -28,6 +23,10 @@ import os
 import requests
 from vt_ida import config
 from vt_ida import vtgrep
+try:
+  import ConfigParser as configparser
+except ImportError:
+  import configparser
 
 VT_IDA_PLUGIN_VERSION = '0.7'
 
@@ -274,7 +273,7 @@ class VTpluginSetup(object):
     return change_config
 
   def read_config(self):
-    """Read user's configuration file."""
+    """Read the user's configuration file."""
 
     logging.debug('[VT Plugin] Reading user config file: %s', self.vt_cfgfile)
     config_file = configparser.RawConfigParser()
@@ -307,7 +306,6 @@ class VTpluginSetup(object):
       return False
     return True
 
-
   def check_version(self):
     """Return True if there's an update available."""
 
@@ -323,12 +321,11 @@ class VTpluginSetup(object):
     except:
       logging.error('[VT Plugin] Unable to check for updates.')
       return False
-    
+
     if response.status_code == 200:  # unable to check version
       if float(response.text) > float(VT_IDA_PLUGIN_VERSION):
         return True
     return False
-
 
   def check_file_missing_in_VT(self):
     """Return True if the file is not available at VirusTotal."""
@@ -343,7 +340,7 @@ class VTpluginSetup(object):
       # Only checks the hash value when the input file is available
 
       hash_f = hashlib.sha256()
-      
+
       try:
         file_r = open(self.file_path, 'rb')
       except:
@@ -390,7 +387,7 @@ class VTpluginSetup(object):
       files = {'file': (self.file_name, open(self.file_path, 'rb'))}
 
       ida_kernwin.show_wait_box('HIDECANCEL\nUploading file to VirusTotal...')
-      
+
       try:
         response = requests.post(url, files=files, headers=headers)
       except:
@@ -457,10 +454,10 @@ class VTplugin(idaapi.plugin_t):
     vtsetup = VTpluginSetup(config_file)
 
     if vtsetup.check_version():
-      ida_kernwin.info('A new version of the VirusTotal plugin is available!')
-      logging.info('[VT Plugin] A new version of the VirusTotal plugin is available!')
+      ida_kernwin.info('A new version of this plugin is available!')
+      logging.info('[VT Plugin] A new version of this plugin is available!')
     else:
-      logging.debug('[VT Plugin] You\'re running the current version of this plugin.')
+      logging.debug('[VT Plugin] No update is available.')
 
     if os.path.exists(config_file):
       valid_config = vtsetup.read_config()

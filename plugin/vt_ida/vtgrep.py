@@ -14,10 +14,10 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import binascii
+import ida_kernwin
 import idaapi
 import idautils
 import idc
-import ida_kernwin
 import logging
 import webbrowser
 try:
@@ -444,12 +444,12 @@ class VTGrepSearch(object):
     else:
       len_query = len(str_buf)
 
-      if (len_query and self._MIN_QUERY_SIZE >= len_query):
-        logging.error('[VTGREP] The query produced is too small.')
-        ida_kernwin.warning('The query produced is too small.')
-      elif (len_query and len_query > self._MAX_QUERY_SIZE):
-        logging.error('[VTGREP] The query produced is too big.')
-        ida_kernwin.warning('The query produced is too big.')
+      if len_query and self._MIN_QUERY_SIZE >= len_query:
+        logging.error('[VTGREP] The query produced is too short.')
+        ida_kernwin.warning('The query produced is too short.')
+      elif len_query and len_query > self._MAX_QUERY_SIZE:
+        logging.error('[VTGREP] The query produced is too long.')
+        ida_kernwin.warning('The query produced is too long.')
       else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
@@ -460,6 +460,3 @@ class VTGrepSearch(object):
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
           ida_kernwin.warning('Error while opening the web browser.')
-
-      
-    
