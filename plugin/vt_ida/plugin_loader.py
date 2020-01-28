@@ -392,16 +392,25 @@ class VTpluginSetup(object):
 
   @staticmethod
   def __compare_versions(current, new):
-
     current_ver = current.split('.', 1)
     new_ver = new.split('.', 1)
 
     if len(current_ver) == 2 and len(new_ver) == 2:
-      if int(new_ver[0]) > int(current_ver[0]):
+
+      if len(new_ver[0]) > len(current_ver[0]):
+        current_ver[0] = '0' + current_ver[0]
+      elif len(new_ver[0]) < len(current_ver[0]):
+        new_ver[0] = '0' + new_ver[0]
+
+      if len(new_ver[1]) > len(current_ver[1]):
+        current_ver[1] = '0' + current_ver[1]
+      elif len(new_ver[1]) < len(current_ver[1]):
+        new_ver[1] = '0' + new_ver[1]
+
+      if (new_ver[0] > current_ver[0] or
+          (new_ver[0] == current_ver[0] and new_ver[1] > current_ver[1])):
         return True
-      elif (int(new_ver[0]) == int(current_ver[0]) and
-            int(new_ver[1]) > int(current_ver[1])):
-        return True
+
     return False
 
   def check_version(self):
@@ -412,8 +421,8 @@ class VTpluginSetup(object):
         'User-Agent': user_agent,
         'Accept': 'application/json'
     }
-    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
-
+    # url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
+    url = 'http://analisisdemalware.com/VERSION'
     try:
       response = requests.get(url, headers=headers)
     except:
@@ -421,7 +430,9 @@ class VTpluginSetup(object):
       return False
 
     if response.status_code == 200:
-      if self.__compare_versions(VT_IDA_PLUGIN_VERSION, response.text):
+      version = response.text.rstrip('\n')
+      if self.__compare_versions(VT_IDA_PLUGIN_VERSION, version):
+        logging.debug('[VT Plugin] Version %s is available !', version)
         return True
     return False
 

@@ -24,10 +24,11 @@ Copy the content of the ``plugin`` directory into the IDA Pro's plugin directory
 ## Usage
 While in the disassembly window, select an area of a set of instructions and right-click to chose one of the following actions:
 
-* *Search for bytes*: search for the same bytes of the area selected.
-* *Search for similar code* : identify memory offsets or addresses in the current area selected and wildcard them.
-* *Search for similar code (strict)*: wildcard all the constants defined in the current area.
-* *Search for similar functions*: same as "searching for similar code" but automatically selects all the instructions in the current function.
+- *Search for bytes*: it searches for the bytes contained in the selected area.
+- *Search for string*: it searches for the same string as the one selected in the Strings Window.
+- *Search for similar code*: identifies memory offsets or addresses in the currently selected area and ignores them when searching.
+- *Search for similar code (strict)*: same as above but it also ignores all the constants in the currently selected area.
+- *Search for similar functions*: same as "similar code" but you don’t need to select all the instructions that belong to a function. Just right-click on one instruction, and it will automatically detect the function boundaries, selecting all the instructions of the current function.
 
 Another option is to look for similar strings. To search for similar ones, open the `Strings Windows` in IDA Pro, right-click on any string (one or many) and select `Virus Total -> Search for string`. 
 
