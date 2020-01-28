@@ -35,4 +35,4 @@ These actions will launch a new instance of your default web browser, showing al
 
 Check IDA Pro's output window for any message that may need your attention.
 
-Note: This version only supports **Intel 32/64 bits** when searching for similar code. Support for more processors will be added in the next version. 
+**Note**: This version only supports **Intel 32/64 bits** when searching for similar code. Support for more processors will be added in the next version. 
