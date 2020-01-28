@@ -421,8 +421,8 @@ class VTpluginSetup(object):
         'User-Agent': user_agent,
         'Accept': 'application/json'
     }
-    # url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
-    url = 'http://analisisdemalware.com/VERSION'
+    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
+    
     try:
       response = requests.get(url, headers=headers)
     except:
@@ -489,7 +489,7 @@ class VTplugin(idaapi.plugin_t):
 
     if vtsetup.check_version():
       ida_kernwin.info('A new version of this plugin is available!')
-      logging.info('[VT Plugin] A new version of this plugin is available!')
+      logging.info('[VT Plugin] There\'s a new version of the VirusTotal plugin!')
     else:
       logging.debug('[VT Plugin] No update is available.')
 
