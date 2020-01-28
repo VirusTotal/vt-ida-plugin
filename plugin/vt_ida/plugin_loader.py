@@ -31,6 +31,7 @@ except ImportError:
 
 VT_IDA_PLUGIN_VERSION = '0.7'
 
+
 def PLUGIN_ENTRY():
   return VTplugin()
 
@@ -389,6 +390,20 @@ class VTpluginSetup(object):
       return False
     return True
 
+  @staticmethod
+  def __compare_versions(current, new):
+
+    current_ver = current.split('.', 1)
+    new_ver = new.split('.', 1)
+
+    if len(current_ver) == 2 and len(new_ver) == 2:
+      if int(new_ver[0]) > int(current_ver[0]):
+        return True
+      elif (int(new_ver[0]) == int(current_ver[0]) and
+            int(new_ver[1]) > int(current_ver[1])):
+        return True
+    return False
+
   def check_version(self):
     """Return True if there's an update available."""
 
@@ -405,8 +420,8 @@ class VTpluginSetup(object):
       logging.error('[VT Plugin] Unable to check for updates.')
       return False
 
-    if response.status_code == 200:  # unable to check version
-      if float(response.text) > float(VT_IDA_PLUGIN_VERSION):
+    if response.status_code == 200:
+      if self.__compare_versions(VT_IDA_PLUGIN_VERSION, response.text):
         return True
     return False
 
