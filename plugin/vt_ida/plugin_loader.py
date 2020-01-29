@@ -422,7 +422,7 @@ class VTpluginSetup(object):
         'Accept': 'application/json'
     }
     url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
-    
+
     try:
       response = requests.get(url, headers=headers)
     except:

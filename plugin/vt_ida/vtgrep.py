@@ -165,7 +165,7 @@ class VTGrepSearch(object):
                                          op1_type, op2_type):
     """Replaces bytes related to memory addresses with wildcards.
 
-    TODO: to be replaced by ida_idp.ph_calcrel()
+    TODO: To be replaced by ida_idp.ph_calcrel()
 
     Args:
       pattern: current buffer containing the bytes of the current instruction.
