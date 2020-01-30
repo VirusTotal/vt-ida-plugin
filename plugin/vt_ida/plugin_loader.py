@@ -402,7 +402,9 @@ class VTpluginSetup(object):
     current_ver = current.split('.', 1)
     new_ver = new.split('.', 1)
 
-    current_ver, new_ver = self.__normalize(current_ver, new_ver)
+    current_ver[0], new_ver[0] = self.__normalize(current_ver[0], new_ver[0])
+    current_ver[1], new_ver[1] = self.__normalize(current_ver[1], new_ver[1])
+
     if (new_ver[0] > current_ver[0] or
         (new_ver[0] == current_ver[0] and new_ver[1] > current_ver[1])):
       return True
