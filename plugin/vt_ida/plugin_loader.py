@@ -491,7 +491,7 @@ class VTplugin(idaapi.plugin_t):
       ida_kernwin.info('A new version of this plugin is available!')
       logging.info('[VT Plugin] There\'s a new version of the VirusTotal plugin!')
     else:
-      logging.debug('[VT Plugin] No update is available.')
+      logging.debug('[VT Plugin] No update available.')
 
     if os.path.exists(config_file):
       valid_config = vtsetup.read_config()
