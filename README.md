@@ -1,7 +1,7 @@
 # VT-IDA Plugin
 This is the official VirusTotal plugin for Hex-Rays IDA Pro. This plugin integrates functionality from VirusTotal web services into the IDA Pro's user interface. 
 
-The current version is v0.7beta, This plugin is not production-ready yet, and unexpected behavior can still occur. This release integrates VTGrep into IDA Pro, facilitating the searching for similar code, strings, or sequences of bytes.
+The current version is v0.8beta, This plugin is not production-ready yet, and unexpected behavior can still occur. This release integrates VTGrep into IDA Pro, facilitating the searching for similar code, strings, or sequences of bytes.
 
 ## Requirements
 This plugin has been developed for **IDA Pro 7.0** and beyond and supports both Python 2.7 and 3.x. 
