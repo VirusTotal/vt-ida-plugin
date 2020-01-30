@@ -13,12 +13,17 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
+import binascii
+import ida_kernwin
 import idaapi
 import idautils
 import idc
 import logging
-import urllib
 import webbrowser
+try:
+  from urllib import quote
+except ImportError:
+  from urllib.parse import quote
 
 
 class Bytes(object):
@@ -85,7 +90,7 @@ class WildCards(object):
       else:
         wcs_len = self.len() + len(qslice)
       wcs_count = wcs_len / 2
-      self.wcs_stream = '[{}]'.format(str(wcs_count)) + '?' * (wcs_len % 2)
+      self.wcs_stream = '[{}]'.format(str(int(wcs_count))) + '?' * (wcs_len % 2)
       self.packed = True
 
   def get(self):
@@ -97,10 +102,10 @@ class WildCards(object):
       wcs_len = self.wcs_stream.lstrip('[').rstrip(']')
       question_index = self.wcs_stream.find('?')
       if question_index != -1:
-        str_len = int(wcs_len.rstrip(']?')) * 2
+        str_len = int(float(wcs_len.rstrip(']?'))) * 2
         str_len += 1
       else:
-        str_len = int(wcs_len) * 2
+        str_len = int(float(wcs_len)) * 2
       return str_len
     else:
       return len(self.wcs_stream)
@@ -110,7 +115,8 @@ class WildCards(object):
       wcs_len = len(self.wcs_stream)
       if wcs_len > 3:
         wcs_count = (wcs_len / 2)
-        self.wcs_stream = '[{}]'.format(str(wcs_count)) + '?' * (wcs_len % 2)
+        self.wcs_stream = '[{}]'.format(str(int(wcs_count)))
+        self.wcs_stream += '?' * (wcs_len % 2)
         self.packed = True
 
   def combinable(self, next_slice):
@@ -149,6 +155,8 @@ class VTGrepSearch(object):
 
   def __init__(self, *args, **kwargs):
     self.string_searching = kwargs.get('string', False)
+    if self.string_searching:
+      self.string_searching = self.string_searching.encode('utf-8')
     self.addr_start = kwargs.get('addr_start', 0)
     self.addr_end = kwargs.get('addr_end', 0)
 
@@ -156,6 +164,8 @@ class VTGrepSearch(object):
   def __get_instruction_bytes_wildcarded(pattern, addr, instr_type,
                                          op1_type, op2_type):
     """Replaces bytes related to memory addresses with wildcards.
+
+    TODO: To be replaced by ida_idp.ph_calcrel()
 
     Args:
       pattern: current buffer containing the bytes of the current instruction.
@@ -172,7 +182,7 @@ class VTGrepSearch(object):
     type_calls = frozenset([idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni])
     type_jumps = frozenset([idaapi.NN_jmp, idaapi.NN_jmpfi, idaapi.NN_jmpni])
 
-    inst_prefix = idc.get_bytes(addr, 1).encode('hex')
+    inst_prefix = binascii.hexlify(idc.get_bytes(addr, 1)).decode('utf-8')
     drefs = [x for x in idautils.DataRefsFrom(addr)]
 
     logging.debug(
@@ -182,21 +192,21 @@ class VTGrepSearch(object):
 
     # Known 2 bytes opcodes
     if inst_prefix in ('0f', 'f2', 'f3'):
-      pattern = idc.get_bytes(addr, 2).encode('hex')
+      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
       inst_num_bytes = 2
 
     # CALLs or JUMPs using 2 bytes opcodes
     elif inst_prefix == 'ff' and (instr_type in type_jumps or
                                   instr_type in type_calls):
 
-      pattern = idc.get_bytes(addr, 2).encode('hex')
+      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
       inst_num_bytes = 2
 
     # A PUSH instruction using an inmediate value (mem offset)
     elif (inst_prefix == 'ff' and drefs and
           (op1_type == idaapi.o_imm or op2_type == idaapi.o_imm)):
 
-      pattern = idc.get_bytes(addr, 2).encode('hex')
+      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
       inst_num_bytes = 2
 
     # No prefix is used
@@ -242,7 +252,7 @@ class VTGrepSearch(object):
       inst_len = idc.get_item_size(addr)
       drefs = [x for x in idautils.DataRefsFrom(addr)]
 
-      # Checks only if any operand constains a memory address
+      # Checks if any operand constains a memory address
       if (drefs and
           ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
           op1_type in offsets_types or op2_type in offsets_types):
@@ -267,7 +277,8 @@ class VTGrepSearch(object):
               )
         # In any other case, concatenate the raw bytes to the current string
         else:
-          pattern = idc.get_bytes(addr, inst_len).encode('hex')
+          pattern = binascii.hexlify(idc.get_bytes(addr, inst_len))
+          pattern = pattern.decode('utf-8')
       return pattern
     else: return 0
 
@@ -330,12 +341,13 @@ class VTGrepSearch(object):
   @staticmethod
   def __reduce_query(buf):
     """Receives a string buffer and returns a shorter version when possible.
-    
-    Receives a string buffer and produces a simplifyed version of the
-    query string, where adjacents slices are combined when possible.
-    
-    Returns a list of slices where each slice can be a Bytes or 
-    WildCards object.
+
+    Args:
+      buf: receives a string buffer and produces a simplifyed version of the
+      query string, where adjacents slices are combined when possible.
+
+    Returns:
+      List: list of slices where each slice can be a Bytes or WildCards object.
     """
 
     query_slices = VTGrepSearch.__generate_slices(buf)
@@ -360,7 +372,13 @@ class VTGrepSearch(object):
     """Returns a buffer containing all the bytes of the instructions selected.
 
       If there are instructions that contain offsets or memory addresses,
-      their operands will be wildcarded.
+    their operands will be wildcarded.
+
+    Args:
+      wildcards: True -> wildcards will be applied, False -> raw bytes
+      strict: True -> all constants will be wildcarded
+    Returns:
+      Bytes: all the bytes belonging to the current selected instructions.
     """
 
     current = self.addr_start
@@ -389,7 +407,7 @@ class VTGrepSearch(object):
             self.addr_start,
             self.addr_end - self.addr_start
             )
-        str_buf = str_buf.encode('hex')
+        str_buf = binascii.hexlify(str_buf).decode('utf-8')
 
     if str_buf:
       return str_buf
@@ -411,30 +429,36 @@ class VTGrepSearch(object):
     (default) web browser to launch the query.
     """
 
-    str_buf = ''
+    str_buf = None
 
     if self.string_searching:
-      str_buf = self.string_searching.encode('hex')
+      # str_buf = self.string_searching.encode("utf-8").hex()
+      str_buf = binascii.hexlify(self.string_searching).decode('utf-8')
     else:
       str_buf = self.__create_query(wildcards, strict)
       if wildcards and str_buf is not None:
         str_buf = self.__sanitize(self.__reduce_query(str_buf))
 
     # After creating the search string, checks if new size is valid
-    if str_buf is not None:
+    if str_buf is None:
+      logging.error('[VTGREP] Invalid query length or area selected.')
+      ida_kernwin.warning('Invalid query length or area selected.')
+    else:
       len_query = len(str_buf)
 
-      if (len_query and self._MIN_QUERY_SIZE < len_query and
-          len_query < self._MAX_QUERY_SIZE):
-
+      if len_query and self._MIN_QUERY_SIZE >= len_query:
+        logging.error('[VTGREP] The query produced is too short.')
+        ida_kernwin.warning('The query produced is too short.')
+      elif len_query and len_query > self._MAX_QUERY_SIZE:
+        logging.error('[VTGREP] The query produced is too long.')
+        ida_kernwin.warning('The query produced is too long.')
+      else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
-        url = 'https://{}'.format(urllib.quote(vtgrep_url.format(str_buf)))
+        url = 'https://{}'.format(quote(vtgrep_url.format(str_buf)))
 
         try:
           webbrowser.open_new(url)
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
-    else:
-      logging.error('[VTGREP] Invalid query length or invalid area.')
-    
+          ida_kernwin.warning('Error while opening the web browser.')
