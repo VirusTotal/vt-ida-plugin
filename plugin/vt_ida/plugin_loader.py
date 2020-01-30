@@ -391,25 +391,21 @@ class VTpluginSetup(object):
     return True
 
   @staticmethod
-  def __compare_versions(current, new):
+  def __normalize(a, b):
+    while len(a) > len(b):
+      b = '0' + b
+    while len(b) > len(a):
+      a = '0' + a
+    return a, b
+
+  def __compare_versions(self, current, new):
     current_ver = current.split('.', 1)
     new_ver = new.split('.', 1)
 
-    if len(current_ver) == 2 and len(new_ver) == 2:
-
-      if len(new_ver[0]) > len(current_ver[0]):
-        current_ver[0] = '0' + current_ver[0]
-      elif len(new_ver[0]) < len(current_ver[0]):
-        new_ver[0] = '0' + new_ver[0]
-
-      if len(new_ver[1]) > len(current_ver[1]):
-        current_ver[1] = '0' + current_ver[1]
-      elif len(new_ver[1]) < len(current_ver[1]):
-        new_ver[1] = '0' + new_ver[1]
-
-      if (new_ver[0] > current_ver[0] or
-          (new_ver[0] == current_ver[0] and new_ver[1] > current_ver[1])):
-        return True
+    current_ver, new_ver = self.__normalize(current_ver, new_ver)
+    if (new_ver[0] > current_ver[0] or
+        (new_ver[0] == current_ver[0] and new_ver[1] > current_ver[1])):
+      return True
 
     return False
 
@@ -421,7 +417,8 @@ class VTpluginSetup(object):
         'User-Agent': user_agent,
         'Accept': 'application/json'
     }
-    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
+    # url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
+    url = 'http://analisisdemalware.com/VERSION'
 
     try:
       response = requests.get(url, headers=headers)
@@ -488,8 +485,8 @@ class VTplugin(idaapi.plugin_t):
     vtsetup = VTpluginSetup(config_file)
 
     if vtsetup.check_version():
-      ida_kernwin.info('A new version of this plugin is available!')
-      logging.info('[VT Plugin] There\'s a new version of the VirusTotal plugin!')
+      ida_kernwin.info('VirusTotal\'s IDA Pro Plugin\nNew version available!')
+      logging.info('[VT Plugin] There\'s a new version of this plugin!')
     else:
       logging.debug('[VT Plugin] No update available.')
 
