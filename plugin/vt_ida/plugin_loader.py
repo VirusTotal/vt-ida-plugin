@@ -29,7 +29,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.7'
+VT_IDA_PLUGIN_VERSION = '0.8'
 
 
 def PLUGIN_ENTRY():
@@ -419,7 +419,7 @@ class VTpluginSetup(object):
         'User-Agent': user_agent,
         'Accept': 'application/json'
     }
-    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/VERSION'
+    url = 'https://raw.githubusercontent.com/VirusTotal/vt-ida-plugin/master/VERSION'
 
     try:
       response = requests.get(url, headers=headers)
