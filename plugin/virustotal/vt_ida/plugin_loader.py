@@ -22,14 +22,14 @@ import logging
 import os
 import requests
 import threading
-from vt_ida import config
-from vt_ida import vtgrep
+from virustotal import config
+from virustotal import vtgrep
 try:
   import ConfigParser as configparser
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.8'
+VT_IDA_PLUGIN_VERSION = '0.9'
 
 
 def PLUGIN_ENTRY():
@@ -470,8 +470,8 @@ class VTplugin(idaapi.plugin_t):
 
   SUPPORTED_PROCESSORS = ['80286r', '80286p', '80386r', '80386p', '80486r',
                           '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
-                          'p3', 'athlon', 'p4', 'metapc']
-  flags = idaapi.PLUGIN_UNL
+                          'p3', 'athlon', 'p4', 'metapc', 'ARM']
+  flags = idaapi.PLUGIN_UNL 
   comment = 'VirusTotal Plugin for IDA Pro'
   help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
   wanted_name = 'VirusTotal'
