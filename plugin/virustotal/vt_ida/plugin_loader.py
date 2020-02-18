@@ -472,9 +472,13 @@ class VTpluginSetup(object):
 class VTplugin(idaapi.plugin_t):
   """VirusTotal plugin interface for IDA Pro."""
 
-  SUPPORTED_PROCESSORS = ['80286r', '80286p', '80386r', '80386p', '80486r',
-                          '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
-                          'p3', 'athlon', 'p4', 'metapc', 'ARM']
+  SEARCH_CODE_SUPPORTED = ['80286r', '80286p', '80386r', '80386p', '80486r',
+                           '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
+                           'p3', 'athlon', 'p4', 'metapc', 'ARM']
+  SEARCH_STRICT_SUPPORTED = ['80286r', '80286p', '80386r', '80386p', '80486r',
+                             '80486p', '80586r', '80586p', '80686p', 'k62',
+                             'p2', 'p3', 'athlon', 'p4', 'metapc']
+
   flags = idaapi.PLUGIN_UNL
   comment = 'VirusTotal Plugin for IDA Pro'
   help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
@@ -517,12 +521,15 @@ class VTplugin(idaapi.plugin_t):
       arch_info = idaapi.get_inf_structure()
 
       try:
-        if arch_info.procName in self.SUPPORTED_PROCESSORS:
+        if arch_info.procName in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
               'Search for similar code (strict)'
           )
+          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
+        elif arch_info.procName in self.SEARCH_CODE_SUPPORTED:
+          VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
           logging.info('\n - Processor detected: %s', arch_info.procName)

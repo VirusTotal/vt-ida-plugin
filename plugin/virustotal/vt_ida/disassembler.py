@@ -78,7 +78,7 @@ class Disassembler(object):
     pattern = ' '
 
     while current_byte < len(mask_str):
-      if mask_str[current_byte] == 'f' or mask_str[current_byte+1] == 'f':
+      if mask_str[current_byte] != '0' or mask_str[current_byte+1] != '0':
         pattern += '?? '
       else:
         instr_bytes = idc.get_bytes(addr+index_instr, 1)
