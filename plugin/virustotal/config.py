@@ -1,6 +1,6 @@
 
 # VT-IDA plugin global configuration file
 
-API_KEY = ''  
+API_KEY = ''  # Optional
 DEBUG = False
 

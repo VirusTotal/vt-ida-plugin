@@ -307,11 +307,15 @@ class CheckSample(threading.Thread):
     """Upload input file to VirusTotal."""
 
     user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
-
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
+    if config.API_KEY == '':
+      headers = {
+          'User-Agent': user_agent,
+      }
+    else:
+      headers = {
+          'User-Agent': user_agent,
+          'x-apikey': config.API_KEY
+      }
 
     if os.path.isfile(self.input_file):
       logging.info('[VT Plugin] Uploading input file to VirusTotal.')
@@ -323,7 +327,7 @@ class CheckSample(threading.Thread):
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
 
-      if response.status_code == 200:
+      if response.ok:
         logging.debug('[VT Plugin] Uploaded successfully.')
       else:
         logging.error('[VT Plugin] Upload failed.')
@@ -471,7 +475,7 @@ class VTplugin(idaapi.plugin_t):
   SUPPORTED_PROCESSORS = ['80286r', '80286p', '80386r', '80386p', '80486r',
                           '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
                           'p3', 'athlon', 'p4', 'metapc', 'ARM']
-  flags = idaapi.PLUGIN_UNL 
+  flags = idaapi.PLUGIN_UNL
   comment = 'VirusTotal Plugin for IDA Pro'
   help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
   wanted_name = 'VirusTotal'
