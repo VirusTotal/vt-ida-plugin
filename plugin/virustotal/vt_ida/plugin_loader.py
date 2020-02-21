@@ -222,11 +222,12 @@ class WarningForm(ida_kernwin.Form):
   def __init__(self):
     self.invert = False
     ida_kernwin.Form.__init__(self, r"""STARTITEM 0
-BUTTON YES* Ok
-BUTTON NO  No
+BUTTON YES Ok
+BUTTON NO*  No
+BUTTON Cancel Cancel
 VirusTotal Plugin for IDA Pro 7
 
-Welcome to the Beta Version of VirusTotal IDA Pro Plugin !
+Welcome to the Beta Version of the VirusTotal IDA Pro Plugin !
 
 Auto uploads of samples is enabled by default. By submitting 
 your file to VirusTotal you are asking VirusTotal to share 
