@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2020 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,8 +15,8 @@ __author__ = 'gerardofn@virustotal.com'
 
 import binascii
 import logging
-from virustotal.vt_ida.disassembler import *
-from virustotal.vt_ida.widgets import *
+from virustotal.vt_ida.disassembler import Disassembler
+from virustotal.vt_ida.widgets import Widgets
 import webbrowser
 
 try:

@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2020 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -24,20 +24,6 @@ import logging
 class Disassembler(object):
 
   @staticmethod
-  def valid_address_range(addr_start, addr_end):
-    if addr_start == idaapi.BADADDR or addr_end == idaapi.BADADDR:
-      return False
-    else:
-      return True
-
-  @staticmethod
-  def valid_range_size(addr_start, addr_end, max_size):
-    if (addr_end - addr_start) > max_size:
-      return False
-    else:
-      return True
-
-  @staticmethod
   def bad_address():
     return idaapi.BADADDR
 
@@ -46,11 +32,26 @@ class Disassembler(object):
     return idc.next_head(addr)
 
   @staticmethod
-  def get_bytes(addr_start, addr_end):
+  def get_bytes(start_addr, end_addr):
     return idc.get_bytes(
-        addr_start,
-        addr_end - addr_start
+        start_addr,
+        end_addr - start_addr
         )
+
+  @staticmethod
+  def valid_address_range(start_addr, end_addr):
+    if (start_addr == Disassembler.bad_address() or
+        end_addr == Disassembler.bad_address()):
+      return False
+    else:
+      return True
+
+  @staticmethod
+  def valid_range_size(start_addr, end_addr, max_size):
+    if (end_addr - start_addr) > max_size:
+      return False
+    else:
+      return True
 
   @staticmethod
   def wildcard_instruction(addr):
