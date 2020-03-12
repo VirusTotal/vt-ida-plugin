@@ -1,4 +1,3 @@
-
 # Copyright 2020 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +13,16 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
-from virustotal.vt_ida.plugin_loader import PLUGIN_ENTRY, VTplugin
+import ida_kernwin
 
 
+class Widgets(object):
 
+  @staticmethod
+  def show_info(msg):
+    ida_kernwin.info(msg)
+
+  @staticmethod
+  def show_warning(msg):
+    ida_kernwin.warning(msg)
+ 

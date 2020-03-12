@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2020 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,12 +14,11 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import binascii
-import ida_kernwin
-import idaapi
-import idautils
-import idc
 import logging
+from virustotal.vt_ida.disassembler import Disassembler
+from virustotal.vt_ida.widgets import Widgets
 import webbrowser
+
 try:
   from urllib import quote
 except ImportError:
@@ -45,6 +44,11 @@ class Bytes(object):
 
   def len(self):
     return len(self.bytes_stream)
+
+  def same_type(self, next_slice):
+    if isinstance(next_slice, Bytes):
+      return True
+    return False
 
   def combinable(self, next_slice):
     # Check if current slice can be combined with the next slice
@@ -119,6 +123,11 @@ class WildCards(object):
         self.wcs_stream += '?' * (wcs_len % 2)
         self.packed = True
 
+  def same_type(self, next_slice):
+    if isinstance(next_slice, Bytes):
+      return False
+    return True
+
   def combinable(self, next_slice):
     # Check if the current slice can be combined with the next slice
     if next_slice:
@@ -159,128 +168,6 @@ class VTGrepSearch(object):
       self.string_searching = self.string_searching.encode('utf-8')
     self.addr_start = kwargs.get('addr_start', 0)
     self.addr_end = kwargs.get('addr_end', 0)
-
-  @staticmethod
-  def __get_instruction_bytes_wildcarded(pattern, addr, instr_type,
-                                         op1_type, op2_type):
-    """Replaces bytes related to memory addresses with wildcards.
-
-    TODO: To be replaced by ida_idp.ph_calcrel()
-
-    Args:
-      pattern: current buffer containing the bytes of the current instruction.
-      addr: the address of the current instruction to be wildcarded
-      instr_type: type of the current instruction
-      op1_type: type of the first operand
-      op2_type: type of the second operand
-
-    Returns:
-      String: hex-encoded representation of the bytes obtained at addr where
-              all the operands that refers to memmory addresses are wildcarded.
-    """
-
-    type_calls = frozenset([idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni])
-    type_jumps = frozenset([idaapi.NN_jmp, idaapi.NN_jmpfi, idaapi.NN_jmpni])
-
-    inst_prefix = binascii.hexlify(idc.get_bytes(addr, 1)).decode('utf-8')
-    drefs = [x for x in idautils.DataRefsFrom(addr)]
-
-    logging.debug(
-        '[VTGREP] Wildcarding: %s',
-        idc.generate_disasm_line(addr, 0)
-        )
-
-    # Known 2 bytes opcodes
-    if inst_prefix in ('0f', 'f2', 'f3'):
-      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
-      inst_num_bytes = 2
-
-    # CALLs or JUMPs using 2 bytes opcodes
-    elif inst_prefix == 'ff' and (instr_type in type_jumps or
-                                  instr_type in type_calls):
-
-      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
-      inst_num_bytes = 2
-
-    # A PUSH instruction using an inmediate value (mem offset)
-    elif (inst_prefix == 'ff' and drefs and
-          (op1_type == idaapi.o_imm or op2_type == idaapi.o_imm)):
-
-      pattern = binascii.hexlify(idc.get_bytes(addr, 2)).decode('utf-8')
-      inst_num_bytes = 2
-
-    # No prefix is used
-    else:
-      pattern = inst_prefix
-      inst_num_bytes = 1
-
-    pattern += ' ' + '??' * (idc.get_item_size(addr) - inst_num_bytes) + ' '
-    return pattern
-
-  @staticmethod
-  def __get_opcodes(addr, strict):
-    """Get current bytes of the instruction pointed at addr.
-
-    Args:
-      addr: address of the current instruction
-      strict: be more restrictive when applying wildcards (True) or not (False)
-
-    Returns:
-      String: hex-encoded representation of the bytes obtained at addr
-    """
-
-    if strict:
-      offsets_types = {idaapi.o_far, idaapi.o_mem, idaapi.o_imm}
-    else:
-      offsets_types = {idaapi.o_far, idaapi.o_mem}
-
-    pattern = ''
-    mnem = idautils.DecodeInstruction(addr)
-
-    if mnem is not None:
-      op1_type = mnem.Op1.type
-      op2_type = mnem.Op2.type
-
-      logging.debug(
-          '[VTGREP] Instruction: %s  [%d, %d, %d]',
-          idc.generate_disasm_line(addr, 0),
-          mnem.itype,
-          op1_type,
-          op2_type
-          )
-
-      inst_len = idc.get_item_size(addr)
-      drefs = [x for x in idautils.DataRefsFrom(addr)]
-
-      # Checks if any operand constains a memory address
-      if (drefs and
-          ((op1_type == idaapi.o_imm) or (op2_type == idaapi.o_imm)) or
-          op1_type in offsets_types or op2_type in offsets_types):
-        pattern = VTGrepSearch.__get_instruction_bytes_wildcarded(
-            pattern,
-            addr,
-            mnem.itype,
-            op1_type,
-            op2_type
-            )
-      # Checks if the instruction is a CALL (near or far) or
-      # if it's a JMP (excluding near jumps)
-      else:
-        if ((mnem.itype == idaapi.NN_call) or
-            (mnem.itype == idaapi.NN_jmp and op1_type != idaapi.o_near)):
-          pattern = VTGrepSearch.__get_instruction_bytes_wildcarded(
-              pattern,
-              addr,
-              mnem.itype,
-              op1_type,
-              op2_type
-              )
-        # In any other case, concatenate the raw bytes to the current string
-        else:
-          pattern = binascii.hexlify(idc.get_bytes(addr, inst_len))
-          pattern = pattern.decode('utf-8')
-      return pattern
-    else: return 0
 
   @staticmethod
   def __generate_slices(buf):
@@ -360,7 +247,7 @@ class VTGrepSearch(object):
         reduced_list.append(current)
       else:
         prev = len(reduced_list) - 1
-        if reduced_list[prev].combinable(current):
+        if reduced_list[prev].same_type(current):
           reduced_list[prev] = reduced_list[prev].combine(current)
         else:
           reduced_list.append(current)
@@ -385,28 +272,27 @@ class VTGrepSearch(object):
     str_buf = ''
 
     # Check if current selection is in a valid range
-    if (self.addr_start == idaapi.BADADDR or
-        self.addr_end == idaapi.BADADDR):
+    if not Disassembler.valid_address_range(self.addr_start, self.addr_end):
       logging.error('[VTGREP] Select a valid area.')
       return None
-    elif (self.addr_end - self.addr_start) > self._MAX_QUERY_SIZE:
+    elif not Disassembler.valid_range_size(
+        self.addr_start,
+        self.addr_end,
+        self._MAX_QUERY_SIZE
+        ):
       logging.error('[VTGREP] The area selected is too large.')
       return None
     else:  # Selected area is valid
-
       if wildcards:  # Search for similar code
         while current < self.addr_end:
-          new_opcodes = VTGrepSearch.__get_opcodes(current, strict)
+          new_opcodes = Disassembler.get_opcodes(current, strict)
           if new_opcodes == 0:
             break  # Unable to disassemble current address
           else:
             str_buf += new_opcodes
-          current = idc.next_head(current)
+          current = Disassembler.next_address(current)
       else:  # Search bytes
-        str_buf = idc.get_bytes(
-            self.addr_start,
-            self.addr_end - self.addr_start
-            )
+        str_buf = Disassembler.get_bytes(self.addr_start, self.addr_end)
         str_buf = binascii.hexlify(str_buf).decode('utf-8')
 
     if str_buf:
@@ -432,7 +318,6 @@ class VTGrepSearch(object):
     str_buf = None
 
     if self.string_searching:
-      # str_buf = self.string_searching.encode("utf-8").hex()
       str_buf = binascii.hexlify(self.string_searching).decode('utf-8')
     else:
       str_buf = self.__create_query(wildcards, strict)
@@ -442,23 +327,24 @@ class VTGrepSearch(object):
     # After creating the search string, checks if new size is valid
     if str_buf is None:
       logging.error('[VTGREP] Invalid query length or area selected.')
-      ida_kernwin.warning('Invalid query length or area selected.')
+      Widgets.show_warning('Invalid query length or area selected.')
     else:
       len_query = len(str_buf)
 
       if len_query and self._MIN_QUERY_SIZE >= len_query:
         logging.error('[VTGREP] The query produced is too short.')
-        ida_kernwin.warning('The query produced is too short.')
+        Widgets.show_warning('The query produced is too short.')
       elif len_query and len_query > self._MAX_QUERY_SIZE:
         logging.error('[VTGREP] The query produced is too long.')
-        ida_kernwin.warning('The query produced is too long.')
+        Widgets.show_warning('The query produced is too long.')
       else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
         url = 'https://{}'.format(quote(vtgrep_url.format(str_buf)))
+        url += '&utm=vt_ida'
 
         try:
           webbrowser.open_new(url)
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
-          ida_kernwin.warning('Error while opening the web browser.')
+          Widgets.show_warning('Error while opening the web browser.')

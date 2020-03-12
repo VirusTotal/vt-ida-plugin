@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2020 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -22,14 +22,14 @@ import logging
 import os
 import requests
 import threading
-from vt_ida import config
-from vt_ida import vtgrep
+from virustotal import config
+from virustotal import vtgrep
 try:
   import ConfigParser as configparser
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.8'
+VT_IDA_PLUGIN_VERSION = '0.9'
 
 
 def PLUGIN_ENTRY():
@@ -222,11 +222,12 @@ class WarningForm(ida_kernwin.Form):
   def __init__(self):
     self.invert = False
     ida_kernwin.Form.__init__(self, r"""STARTITEM 0
-BUTTON YES* Ok
-BUTTON NO  No
+BUTTON YES Ok
+BUTTON NO*  No
+BUTTON Cancel Cancel
 VirusTotal Plugin for IDA Pro 7
 
-Welcome to the Beta Version of VirusTotal IDA Pro Plugin !
+Welcome to the Beta Version of the VirusTotal IDA Pro Plugin !
 
 Auto uploads of samples is enabled by default. By submitting 
 your file to VirusTotal you are asking VirusTotal to share 
@@ -307,23 +308,30 @@ class CheckSample(threading.Thread):
     """Upload input file to VirusTotal."""
 
     user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
+    if config.API_KEY == '':
+      headers = {
+          'User-Agent': user_agent,
+      }
+    else:
+      headers = {
+          'User-Agent': user_agent,
+          'x-apikey': config.API_KEY
+      }
 
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
+    norm_path = os.path.normpath(self.input_file)
+    file_path, file_name = os.path.split(norm_path)
 
     if os.path.isfile(self.input_file):
       logging.info('[VT Plugin] Uploading input file to VirusTotal.')
       url = 'https://www.virustotal.com/ui/files'
-      files = {'file': (self.input_file, open(self.input_file, 'rb'))}
+      files = {'file': (file_name, open(self.input_file, 'rb'))}
 
       try:
         response = requests.post(url, files=files, headers=headers)
       except:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
 
-      if response.status_code == 200:
+      if response.ok:
         logging.debug('[VT Plugin] Uploaded successfully.')
       else:
         logging.error('[VT Plugin] Upload failed.')
@@ -455,7 +463,7 @@ class VTpluginSetup(object):
           )
 
     logging.info(
-        '\n** VT Plugin for IDA Pro v%s (c) Google, 2019',
+        '\n** VT Plugin for IDA Pro v%s (c) Google, 2020',
         VT_IDA_PLUGIN_VERSION
     )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7')
@@ -468,9 +476,13 @@ class VTpluginSetup(object):
 class VTplugin(idaapi.plugin_t):
   """VirusTotal plugin interface for IDA Pro."""
 
-  SUPPORTED_PROCESSORS = ['80286r', '80286p', '80386r', '80386p', '80486r',
-                          '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
-                          'p3', 'athlon', 'p4', 'metapc']
+  SEARCH_CODE_SUPPORTED = ['80286r', '80286p', '80386r', '80386p', '80486r',
+                           '80486p', '80586r', '80586p', '80686p', 'k62', 'p2',
+                           'p3', 'athlon', 'p4', 'metapc', 'ARM']
+  SEARCH_STRICT_SUPPORTED = ['80286r', '80286p', '80386r', '80386p', '80486r',
+                             '80486p', '80586r', '80586p', '80686p', 'k62',
+                             'p2', 'p3', 'athlon', 'p4', 'metapc']
+
   flags = idaapi.PLUGIN_UNL
   comment = 'VirusTotal Plugin for IDA Pro'
   help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
@@ -513,12 +525,15 @@ class VTplugin(idaapi.plugin_t):
       arch_info = idaapi.get_inf_structure()
 
       try:
-        if arch_info.procName in self.SUPPORTED_PROCESSORS:
+        if arch_info.procName in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
               'Search for similar code (strict)'
           )
+          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
+        elif arch_info.procName in self.SEARCH_CODE_SUPPORTED:
+          VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
           logging.info('\n - Processor detected: %s', arch_info.procName)
