@@ -318,10 +318,13 @@ class CheckSample(threading.Thread):
           'x-apikey': config.API_KEY
       }
 
+    norm_path = os.path.normpath(self.input_file)
+    file_path, file_name = os.path.split(norm_path)
+
     if os.path.isfile(self.input_file):
       logging.info('[VT Plugin] Uploading input file to VirusTotal.')
       url = 'https://www.virustotal.com/ui/files'
-      files = {'file': (self.input_file, open(self.input_file, 'rb'))}
+      files = {'file': (file_name, open(self.input_file, 'rb'))}
 
       try:
         response = requests.post(url, files=files, headers=headers)

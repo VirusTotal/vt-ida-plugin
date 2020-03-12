@@ -341,6 +341,7 @@ class VTGrepSearch(object):
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
         url = 'https://{}'.format(quote(vtgrep_url.format(str_buf)))
+        url += '&utm=vt_ida'
 
         try:
           webbrowser.open_new(url)
