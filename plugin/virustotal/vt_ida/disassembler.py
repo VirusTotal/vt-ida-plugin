@@ -66,11 +66,10 @@ class Disassembler(object):
     """
 
     pattern = ''
-    mask = ida_idp.ph_calcrel(addr)  
+    mask = ida_idp.ph_calcrel(addr)
     # IDA > 7.5 return a list, < 7.5 returns a byte object
     if idaapi.IDA_SDK_VERSION >= 750:
-      mask_bytes = mask[0]
-      mask_length = mask[1]
+      mask_bytes = mask[0]  #  mask_length = mask[1]
       mask_str = binascii.hexlify(mask_bytes).decode('utf-8')
     else:
       mask_str = binascii.hexlify(mask).decode('utf-8')
