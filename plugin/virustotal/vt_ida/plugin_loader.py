@@ -29,7 +29,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.9'
+VT_IDA_PLUGIN_VERSION = '0.10'
 
 
 def PLUGIN_ENTRY():
