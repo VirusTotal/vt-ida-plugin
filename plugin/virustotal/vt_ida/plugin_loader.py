@@ -14,22 +14,20 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import sys
-import hashlib
+
 import ida_kernwin
 import idaapi
 import idc
 import logging
 import os
 import requests
-import threading
-
 from virustotal import config
+from virustotal import defaults
 from virustotal import vtgrep
 from virustotal import vtreport
-from virustotal import defaults
+from virustotal.apikey import CheckAPIKey
 from virustotal.vt_ida.check_sample import CheckSample
 from virustotal.vt_ida.vtpanel import VTPanel
-from virustotal.apikey import CheckAPIKey
 
 try:
   import ConfigParser as configparser
@@ -40,6 +38,7 @@ vt_setup = None
 widget_panel = None
 file_hash = None
 vt_report = None
+
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -187,40 +186,44 @@ class VTGrepBytes(idaapi.action_handler_t):
     else:
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
+
 class MenuVTPanel(idaapi.action_handler_t):
-  
+
   @classmethod
   def activate(cls, ctx):
     global widget_panel
     global vt_setup
     global vt_report
-    
-    if config.API_KEY !='':
+
+    if config.API_KEY:
       user_privs = CheckAPIKey()
       widget_panel = VTPanel()
       widget_panel.set_privileges(user_privs.private())
 
       if vt_setup:
         if not vt_report:
-          ida_kernwin.show_wait_box("Processing information from VirusTotal...")
+          ida_kernwin.show_wait_box('Processing information from VirusTotal...')
           try:
-            vt_report = vtreport.VTReport(config.API_KEY, file_hash, user_privs.private())
+            vt_report = vtreport.VTReport(config.API_KEY,
+                                          file_hash,
+                                          user_privs.private())
           finally:
-            ida_kernwin.hide_wait_box()                
+            ida_kernwin.hide_wait_box()
         if vt_report.valid_report:
-          widget_panel.Show("VirusTotal")
+          widget_panel.Show('VirusTotal')
           idaapi.set_dock_pos('VirusTotal', 'IDA View-A', idaapi.DP_RIGHT)
           widget_panel.set_default_data(vt_report)
         else:
-          logging.info('[VT Plugin] Current file type is not supported in VTPanel.')
+          logging.info('[VT Plugin] File type is not supported by VTPanel.')
       else:
         logging.debug('[VT Plugin] Error setting up menu entry.')
     else:
       logging.debug('[VT Plugin] No API key has been configured.')
-  
+
   @classmethod
   def update(cls, ctx):
     return ida_kernwin.AST_ENABLE_ALWAYS
+
 
 class Popups(idaapi.UI_Hooks):
   """Declares methods to be called on right click operations."""
@@ -375,7 +378,8 @@ class VTpluginSetup(object):
   def check_version(self):
     """Return True if there's an update available."""
 
-    user_agent = 'IDA Pro VT Plugin checkversion - v' + defaults.VT_IDA_PLUGIN_VERSION
+    user_agent = 'IDA Pro VT Plugin checkversion - v'
+    user_agent += defaults.VT_IDA_PLUGIN_VERSION
     headers = {
         'User-Agent': user_agent,
         'Accept': 'application/json'
@@ -446,7 +450,7 @@ class VTplugin(idaapi.plugin_t):
     global widget_panel
     global vt_setup
     global file_hash
-    
+
     valid_config = False
     self.menu = None
     config_file = os.path.join(idaapi.get_user_idadir(), 'virustotal.conf')
@@ -475,23 +479,26 @@ class VTplugin(idaapi.plugin_t):
       checksample = CheckSample(vt_setup.auto_upload, vt_setup.file_path)
       file_hash = checksample.calculate_hash()
       if file_hash:
-        if checksample.check_file_missing_in_VT() and (self.auto_upload is True):
+        if checksample.check_file_missing_in_VT() and self.auto_upload:
           checksample.upload_file_to_VT()
-        if config.API_KEY == '':
+        if not config.API_KEY:
           logging.error('[VT Plugin] API_KEY is missing! Check config file.')
         else:
           ### Register menu entry
-          current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
-          file_icon = os.path.join(current_path,'ui','resources', 'vt_icon.png')
-          vticon_data = open(file_icon, "rb").read()
+          current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+          file_icon = os.path.join(current_path,
+                                   'ui',
+                                   'resources',
+                                   'vt_icon.png')
+          vticon_data = open(file_icon, 'rb').read()
           vtmenu = idaapi.load_custom_icon(data=vticon_data)
           action_desc = idaapi.action_desc_t(
-              'my:vtpanel', 
-              'VirusTotal',  
-              MenuVTPanel(),  
-              '',  
-              'Show VirusTotal panel with information about the current file', 
-              vtmenu) 
+              'my:vtpanel',
+              'VirusTotal',
+              MenuVTPanel(),
+              '',
+              'Show VirusTotal panel with information about the current file',
+              vtmenu)
 
           idaapi.register_action(action_desc)
           idaapi.attach_action_to_menu(
@@ -500,7 +507,7 @@ class VTplugin(idaapi.plugin_t):
               idaapi.SETMENU_APP)
       else:
         logging.error('[VT Plugin] Error calculating hash: VTPanel disabled.')
-        
+
       self.menu = Popups()
       self.menu.hook()
       arch_info = idaapi.get_inf_structure()
@@ -526,7 +533,7 @@ class VTplugin(idaapi.plugin_t):
     else:
       logging.info('[VT Plugin] Plugin disabled, restart IDA to proceed. ')
       ida_kernwin.warning('Plugin disabled, restart IDA to proceed.')
-    
+
     return idaapi.PLUGIN_KEEP
 
   @staticmethod
