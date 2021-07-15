@@ -22,6 +22,7 @@ import ida_search
 import ida_segment
 import logging
 
+
 class NavigateDisassembler(object):
   
   @staticmethod
