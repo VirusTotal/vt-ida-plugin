@@ -18,8 +18,102 @@ import ida_idp
 import idaapi
 import idautils
 import idc
+import ida_search
+import ida_segment
 import logging
 
+class NavigateDisassembler(object):
+  
+  @staticmethod
+  def go_to_ea(str_addr):
+    ea = int(str_addr,0)
+    if ea is not None and ea is not idc.BADADDR:
+      idaapi.jumpto(ea)
+    else:
+      logging.debug('[VT Disassembler] Not valid EA: %s', str_addr)
+  
+  @staticmethod
+  def is_head(ea):
+    flags = idc.get_full_flags(ea)
+    return idc.is_head(flags)
+
+  
+  @staticmethod      
+  def is_imports(segment): 
+    if segment in ('.idata', '.rdata', '.edata' ): # Check: .dynstr, '.dynsym', __IMPORT
+      return True
+    return False
+
+class SearchEvidence(object):
+  
+  @staticmethod     
+  def __filter_address(addr, segment, source, action):
+    if ((source == 'file names' and NavigateDisassembler.is_head(addr)) or
+        (action in ('Calls highlighted', 'Modules loaded', 'Files opened') and 
+         NavigateDisassembler.is_imports(segment))):
+         return True
+    return False
+  
+  def search_text(self, content, source, action, max_results):
+    ''' A text string is reveived as a parameter '''
+    
+    addr = idc.get_inf_attr(idaapi.INF_MIN_EA)
+    list_results=[]
+    logging.debug('[VT Disassembler] Searching text: %s', content)
+
+    for i in range(0, max_results): 
+      addr = ida_search.find_text(addr, 0, 0, content, ida_search.SEARCH_DOWN)
+      result={}
+      if addr == idc.BADADDR:
+        break 
+
+      result['addr'] = addr
+      result['function_name']= idaapi.get_func_name(addr)
+      if result['function_name']:
+        function = idaapi.get_func(addr)
+        result['function_addr'] = function.start_ea
+      else:
+        result['function_addr'] = None
+      segment = ida_segment.getseg(addr)
+      result['segment']= ida_segment.get_segm_name(segment)
+
+      if result and not self.__filter_address(addr, result['segment'], source, action): 
+        list_results.append(result)
+      addr = idc.next_head(addr)
+    
+    if (list_results):
+      logging.info('[VT Disassembler] Evidence FOUND!: %s', list_results)
+    return list_results
+
+  def search_bytes(self, content, source, action, max_results):
+    logging.debug('[VT Disassembler] Searching bytes: %s', content)
+
+    addr = idc.get_inf_attr(idaapi.INF_MIN_EA)
+    list_results=[]
+    
+    for i in range(0, max_results): 
+      addr = ida_search.find_binary(addr, idaapi.BADADDR, content, 16, ida_search.SEARCH_DOWN)
+      result={}
+      if addr == idc.BADADDR:
+        break
+   
+      result['addr'] = addr
+      result['function_name']= idaapi.get_func_name(addr)
+      if result['function_name']:
+        function = idaapi.get_func(addr)
+        result['function_addr'] = function.start_ea
+      else:
+        result['function_addr'] = None
+      segment = ida_segment.getseg(addr)
+      result['segment']= ida_segment.get_segm_name(segment)
+
+      if result and not self.__filter_address(addr, result['segment'], source, action):
+        list_results.append(result)
+      addr = idc.next_head(addr)
+    
+    if (list_results):
+      logging.info('[VT Disassembler] Evidence FOUND!: %s', list_results)
+    return list_results
 
 class Disassembler(object):
 
@@ -75,7 +169,7 @@ class Disassembler(object):
       mask_str = binascii.hexlify(mask).decode('utf-8')
 
     logging.debug(
-        '[VTGREP] Wildcarding: %s',
+        '[VT Disassembler] Wildcarding: %s',
         idc.generate_disasm_line(addr, 0)
         )
 
@@ -92,7 +186,7 @@ class Disassembler(object):
       current_byte += 2
       index_instr += 1
 
-    logging.debug('[VTGREP] Wildcarded: %s', pattern)
+    logging.debug('[VT Disassembler] Wildcarded: %s', pattern)
 
     return pattern
 
@@ -121,7 +215,7 @@ class Disassembler(object):
       op2_type = mnem.Op2.type
 
       logging.debug(
-          '[VTGREP] Instruction: %s  [%d, %d, %d]',
+          '[VT Disassembler] Instruction: %s  [%d, %d, %d]',
           idc.generate_disasm_line(addr, 0),
           mnem.itype,
           op1_type,

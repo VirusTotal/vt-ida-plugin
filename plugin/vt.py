@@ -15,6 +15,3 @@
 __author__ = 'gerardofn@virustotal.com'
 
 from virustotal.vt_ida.plugin_loader import PLUGIN_ENTRY, VTplugin
-
-
-

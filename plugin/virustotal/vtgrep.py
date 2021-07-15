@@ -16,7 +16,7 @@ __author__ = 'gerardofn@virustotal.com'
 import binascii
 import logging
 from virustotal.vt_ida.disassembler import Disassembler
-from virustotal.vt_ida.widgets import Widgets
+from virustotal.vt_ida.vtpanel import VTWidgets
 import webbrowser
 
 try:
@@ -327,16 +327,16 @@ class VTGrepSearch(object):
     # After creating the search string, checks if new size is valid
     if str_buf is None:
       logging.error('[VTGREP] Invalid query length or area selected.')
-      Widgets.show_warning('Invalid query length or area selected.')
+      VTWidgets.show_warning('Invalid query length or area selected.')
     else:
       len_query = len(str_buf)
 
       if len_query and self._MIN_QUERY_SIZE >= len_query:
         logging.error('[VTGREP] The query produced is too short.')
-        Widgets.show_warning('The query produced is too short.')
+        VTWidgets.show_warning('The query produced is too short.')
       elif len_query and len_query > self._MAX_QUERY_SIZE:
         logging.error('[VTGREP] The query produced is too long.')
-        Widgets.show_warning('The query produced is too long.')
+        VTWidgets.show_warning('The query produced is too long.')
       else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
@@ -347,4 +347,4 @@ class VTGrepSearch(object):
           webbrowser.open_new(url)
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
-          Widgets.show_warning('Error while opening the web browser.')
+          VTWidgets.show_warning('Error while opening the web browser.')

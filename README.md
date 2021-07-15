@@ -1,15 +1,21 @@
 # VT-IDA Plugin
 This is the official VirusTotal plugin for Hex-Rays IDA Pro. This plugin integrates functionality from VirusTotal web services into the IDA Pro's user interface. 
 
-The current version is v0.10. This plugin is not production-ready yet, and unexpected behavior can still occur. This release integrates VTGrep into IDA Pro, facilitating the searching for similar code, strings, or sequences of bytes.
+The current version is v1.0beta, This plugin is not production-ready yet, and unexpected behavior can still occur. This release integrates VTGrep into IDA Pro, facilitating the searching for similar code, strings, or sequences of bytes. It also adds an additional panel to the IDA Pro interface (View -> Open subviews -> VirusTotal) to show information extracted from VirusTotal that could help during the reversing process.
 
 ## Requirements
-This plugin has been developed for **IDA Pro 7.0** and beyond and supports both Python 2.7 and 3.x. 
-It requires the "requests" module, the easiest way of installing it is by using ``pip``:
+This plugin has been developed for **IDA Pro 7** (>= 7.4) and Python 3. 
+It requires the "requests" and "vt-py" modules, the easiest way of installing them is by using the ``pip`` command:
 
 ```bash
-$ pip install requests
+$ pip install requests vt-py
 ```
+or 
+
+```bash
+$ python -m pip install requests vt-py
+```
+
 
 ## Installation
 Copy the content of the ``plugin`` directory into the IDA Pro's plugin directory and start IDA Pro. 
@@ -22,6 +28,8 @@ Copy the content of the ``plugin`` directory into the IDA Pro's plugin directory
 
 
 ## Usage
+
+### Searching for similar content
 While in the disassembly window, select an area of a set of instructions and right-click to chose one of the following actions:
 
 - *Search for bytes*: it searches for the bytes contained in the selected area.
@@ -34,6 +42,9 @@ Another option is to look for similar strings. To search for similar ones, open 
 
 These actions will launch a new instance of your default web browser, showing all the matches found in VTGrep. Remember that your default web browser must be logged into your VirusTotal Enterprise account in order to see the results.
 
-Check IDA Pro's output window for any message that may need your attention.
-
 **Note**: This version supports **Intel 32/64 bits** and **ARM** processor architectures when searching for similar code. Probably more architectures are supported but it hasn't been tested yet.
+
+### Navigate through VTPanel
+TBA
+
+Check IDA Pro's output window for any message that may need your attention.
