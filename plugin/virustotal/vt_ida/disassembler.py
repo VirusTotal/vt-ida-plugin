@@ -51,13 +51,13 @@ class SearchEvidence(object):
   @staticmethod
   def __filter_address(addr, segment, source, action):
     if ((source == 'file names' and NavigateDisassembler.is_head(addr)) or
-      (action in ('Calls highlighted', 'Modules loaded', 'Files opened') and
-      NavigateDisassembler.is_imports(segment))):
+        (action in ('Calls highlighted', 'Modules loaded', 'Files opened') and
+         NavigateDisassembler.is_imports(segment))):
       return True
     return False
 
   def search_text(self, content, source, action, max_results):
-    """A text string is reveived as a parameter"""
+    """A text string is reveived as a parameter."""
 
     addr = idc.get_inf_attr(idaapi.INF_MIN_EA)
     list_results = []

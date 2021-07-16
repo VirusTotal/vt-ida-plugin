@@ -66,62 +66,64 @@ class CheckSample(threading.Thread):
   def check_file_missing_in_VT(self):
     """Return True if the file is not available at VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin checkhash - v'
-    user_agent += defaults.VT_IDA_PLUGIN_VERSION
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
+    if config.API_KEY:
+      user_agent = 'IDA Pro VT Plugin checkhash - v'
+      user_agent += defaults.VT_IDA_PLUGIN_VERSION
+      headers = {
+          'User-Agent': user_agent,
+          'Accept': 'application/json',
+          'x-apikey': config.API_KEY
+      }
 
-    url = 'https://www.virustotal.com/ui/files/%s' % self.file_hash
+      url = 'https://www.virustotal.com/ui/files/%s' % self.file_hash
 
-    logging.debug('[VT Plugin] Checking hash: %s', self.file_hash)
-    try:
-      response = requests.get(url, headers=headers)
-    except:
-      logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
-      return False
+      logging.debug('[VT Plugin] Checking hash: %s', self.file_hash)
+      try:
+        response = requests.get(url, headers=headers)
+      except:
+        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+        return False
 
-    if response.status_code == 404:  # file not found in VirusTotal
-      return True
-    elif response.status_code == 200:
-      logging.debug('[VT Plugin] File already available in VirusTotal.')
+      if response.status_code == 404:  # file not found in VirusTotal
+        return True
+      elif response.status_code == 200:
+        logging.debug('[VT Plugin] File already available in VirusTotal.')
 
     return False
 
   def upload_file_to_VT(self):
     """Upload input file to VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin upload - v' + defaults.VT_IDA_PLUGIN_VERSION
-    if not config.API_KEY:
-      headers = {
-          'User-Agent': user_agent,
-      }
-    else:
+    if config.API_KEY:
+      user_agent = 'IDA Pro VT Plugin upload - v' 
+      user_agent += defaults.VT_IDA_PLUGIN_VERSION
+
       headers = {
           'User-Agent': user_agent,
           'x-apikey': config.API_KEY
       }
 
-    norm_path = os.path.normpath(self.input_file)
-    file_path, file_name = os.path.split(norm_path)
+      norm_path = os.path.normpath(self.input_file)
+      file_path, file_name = os.path.split(norm_path)
 
-    if os.path.isfile(self.input_file):
-      logging.info('[VT Plugin] Uploading input file to VirusTotal.')
-      url = 'https://www.virustotal.com/ui/files'
-      files = {'file': (file_name, open(self.input_file, 'rb'))}
+      if os.path.isfile(self.input_file):
+        logging.info('[VT Plugin] Uploading input file to VirusTotal.')
+        url = 'https://www.virustotal.com/ui/files'
+        files = {'file': (file_name, open(self.input_file, 'rb'))}
 
-      try:
-        response = requests.post(url, files=files, headers=headers)
-      except:
-        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+        try:
+          response = requests.post(url, files=files, headers=headers)
+        except:
+          logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
 
-      if response.ok:
-        logging.debug('[VT Plugin] Uploaded successfully.')
+        if response.ok:
+          logging.debug('[VT Plugin] Uploaded successfully.')
+        else:
+          logging.error('[VT Plugin] Upload failed.')
       else:
-        logging.error('[VT Plugin] Upload failed.')
+        logging.error('[VT Plugin] Uploading error: invalidad input file path.')
     else:
-      logging.error('[VT Plugin] Uploading error: input file path is invalid.')
+      logging.info('[VT Plugin] API Key not configured.')
 
 
 
