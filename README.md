@@ -45,6 +45,6 @@ These actions will launch a new instance of your default web browser, showing al
 **Note**: This version supports **Intel 32/64 bits** and **ARM** processor architectures when searching for similar code. Probably more architectures are supported but it hasn't been tested yet.
 
 ### Navigate through VTPanel
-TBA
+TODO(gerardofn): Explain the information showed in the new UI interface and the new functionality provided.
 
 Check IDA Pro's output window for any message that may need your attention.

@@ -41,7 +41,7 @@ class NavigateDisassembler(object):
   @staticmethod
   def is_imports(segment):
     if segment in ('.idata', '.rdata', '.edata'):
-      # Check: .dynstr, '.dynsym', __IMPORT
+      # TODO(gerardofn): check .dynstr, '.dynsym', __IMPORT sections
       return True
     return False
 
