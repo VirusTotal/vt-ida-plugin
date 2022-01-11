@@ -29,7 +29,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.10'
+VT_IDA_PLUGIN_VERSION = '0.11'
 
 
 def PLUGIN_ENTRY():
@@ -523,20 +523,25 @@ class VTplugin(idaapi.plugin_t):
       self.menu = Popups()
       self.menu.hook()
       arch_info = idaapi.get_inf_structure()
+      # supposedly (going to be) removed soon after 770
+      if idaapi.IDA_SDK_VERSION >= 770:
+        target_procname = "procname"
+      else:
+        target_procname = "procName"
 
       try:
-        if arch_info.procName in self.SEARCH_STRICT_SUPPORTED:
+        if arch_info.__getattr__(target_procname) in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
               'Search for similar code (strict)'
           )
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-        elif arch_info.procName in self.SEARCH_CODE_SUPPORTED:
+        elif arch_info.__getattr__(target_procname) in self.SEARCH_CODE_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
-          logging.info('\n - Processor detected: %s', arch_info.procName)
+          logging.info('\n - Processor detected: %s', arch_info.__getattr__(target_procname))
           logging.info(' - Searching for similar code is not available.')
         VTGrepBytes.register(self, 'Search for bytes')
         VTGrepStrings.register(self, 'Search for string')
