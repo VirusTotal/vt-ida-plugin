@@ -29,7 +29,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.10'
+VT_IDA_PLUGIN_VERSION = '0.11'
 
 
 def PLUGIN_ENTRY():
@@ -75,7 +75,7 @@ class VTGrepStrings(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
-    if ctx.form_type == idaapi.BWN_STRINGS:
+    if ctx.widget_type == idaapi.BWN_STRINGS:
       return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
@@ -115,7 +115,7 @@ class VTGrepWildcards(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
-    if ctx.form_type == idaapi.BWN_DISASM:
+    if ctx.widget_type == idaapi.BWN_DISASM:
       return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
@@ -173,7 +173,7 @@ class VTGrepBytes(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
-    if ctx.form_type == idaapi.BWN_DISASM:
+    if ctx.widget_type == idaapi.BWN_DISASM:
       return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
@@ -225,14 +225,14 @@ class WarningForm(ida_kernwin.Form):
 BUTTON YES Ok
 BUTTON NO*  No
 BUTTON Cancel Cancel
-VirusTotal Plugin for IDA Pro 7
+VirusTotal Plugin for IDA Pro
 
 Welcome to the Beta Version of the VirusTotal IDA Pro Plugin !
 
-Auto uploads of samples is enabled by default. By submitting 
-your file to VirusTotal you are asking VirusTotal to share 
-your submission with the security community and agree to our 
-Terms of Service and Privacy Policy. 
+This plugin can be configured to automatically upload you 
+samples. By submitting your file to VirusTotal you are asking 
+VirusTotal to share your submission with the security community 
+and agree to our Terms of Service and Privacy Policy. 
 
 For further information click on the following links:
 - {cHtml1}
@@ -258,35 +258,55 @@ class CheckSample(threading.Thread):
   def __init__(self, upload, path):
     self.auto_upload = upload
     self.input_file = path
+    self.file_hash = None    
     threading.Thread.__init__(self)
+
+  def calculate_hash(self):
+    """Return hash if the file hash has been properly calculated."""
+
+    if os.path.isfile(self.input_file):
+      hash_f = hashlib.sha256()
+      logging.debug('[VT Plugin] Input file available.')
+      with open(self.input_file, 'rb') as file_r:
+        try:
+          for file_buffer in iter(lambda: file_r.read(8192), b''):
+            hash_f.update(file_buffer)
+          self.file_hash = hash_f.hexdigest()
+          logging.debug('[VT Plugin] Input file hash been calculated.')
+        except:
+          logging.debug('[VT Plugin] Can\'t load the input file.')
+    else:
+      logging.debug('[VT Plugin] Input file not available.')
+      tmp_hash = idautils.GetInputFileMD5()
+      if len(tmp_hash) != 32:
+        logging.error('[VT Plugin] IDAPYTHON API returned a wrong hash value.')
+      else:
+        self.file_hash = tmp_hash
+
+    if self.file_hash:
+      return self.file_hash
+    else:
+      if self.auto_upload:
+        logging.error('[VT Plugin] Input file hash error.')
+      else:
+        logging.debug('[VT Plugin] Input file hash error.')
+      return None
 
   def check_file_missing_in_VT(self):
     """Return True if the file is not available at VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin checkhash - v' + VT_IDA_PLUGIN_VERSION
-    headers = {
-        'User-Agent': user_agent,
-        'Accept': 'application/json'
-    }
+    if config.API_KEY:
+      user_agent = 'IDA Pro VT Plugin checkhash - v'
+      user_agent += VT_IDA_PLUGIN_VERSION
+      headers = {
+          'User-Agent': user_agent,
+          'Accept': 'application/json',
+          'x-apikey': config.API_KEY
+      }
 
-    if os.path.isfile(self.input_file):
-      # Only checks the hash value when the input file is available
+      url = 'https://www.virustotal.com/api/v3/files/%s' % self.file_hash
 
-      hash_f = hashlib.sha256()
-
-      try:
-        file_r = open(self.input_file, 'rb')
-      except:
-        logging.debug('[VT Plugin] Can\'t load the input file.')
-        return False
-
-      for file_buffer in iter(lambda: file_r.read(8192), b''):
-        hash_f.update(file_buffer)
-
-      file_hash = hash_f.hexdigest()
-      url = 'https://www.virustotal.com/ui/files/%s' % file_hash
-
-      logging.debug('[VT Plugin] Checking hash: %s', file_hash)
+      logging.debug('[VT Plugin] Checking hash: %s', self.file_hash)
       try:
         response = requests.get(url, headers=headers)
       except:
@@ -297,46 +317,42 @@ class CheckSample(threading.Thread):
         return True
       elif response.status_code == 200:
         logging.debug('[VT Plugin] File already available in VirusTotal.')
-    else:
-      if self.auto_upload:
-        logging.error('[VT Plugin] The input file path is invalid.')
-      else:
-        logging.debug('[VT Plugin] The input file path is invalid.')
+
     return False
 
   def upload_file_to_VT(self):
     """Upload input file to VirusTotal."""
 
-    user_agent = 'IDA Pro VT Plugin upload - v' + VT_IDA_PLUGIN_VERSION
-    if config.API_KEY == '':
+    if config.API_KEY:
+      user_agent = 'IDA Pro VT Plugin upload - v' 
+      user_agent += VT_IDA_PLUGIN_VERSION
+
       headers = {
           'User-Agent': user_agent,
-      }
-    else:
-      headers = {
-          'User-Agent': user_agent,
-          'x-apikey': config.API_KEY
+          'x-apikey': config.API_KEY,
       }
 
-    norm_path = os.path.normpath(self.input_file)
-    file_path, file_name = os.path.split(norm_path)
+      norm_path = os.path.normpath(self.input_file)
+      file_path, file_name = os.path.split(norm_path)
 
-    if os.path.isfile(self.input_file):
-      logging.info('[VT Plugin] Uploading input file to VirusTotal.')
-      url = 'https://www.virustotal.com/ui/files'
-      files = {'file': (file_name, open(self.input_file, 'rb'))}
+      if os.path.isfile(self.input_file):
+        logging.info('[VT Plugin] Uploading input file to VirusTotal.')
+        url = 'https://www.virustotal.com/api/v3/files'
+        files = {'file': (file_name, open(self.input_file, 'rb'))}
 
-      try:
-        response = requests.post(url, files=files, headers=headers)
-      except:
-        logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+        try:
+          response = requests.post(url, files=files, headers=headers)
+        except:
+          logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
 
-      if response.ok:
-        logging.debug('[VT Plugin] Uploaded successfully.')
+        if response.ok:
+          logging.debug('[VT Plugin] Uploaded successfully.')
+        else:
+          logging.error('[VT Plugin] Upload failed.')
       else:
-        logging.error('[VT Plugin] Upload failed.')
+        logging.error('[VT Plugin] Uploading error: invalidad input file path.')
     else:
-      logging.error('[VT Plugin] Uploading error: input file path is invalid.')
+      logging.info('[VT Plugin] API Key not configured.')
 
   def run(self):
     if self.check_file_missing_in_VT() and self.auto_upload:
@@ -463,10 +479,10 @@ class VTpluginSetup(object):
           )
 
     logging.info(
-        '\n** VT Plugin for IDA Pro v%s (c) Google, 2020',
+        '\n** VT Plugin for IDA Pro v%s (c) Google, 2023',
         VT_IDA_PLUGIN_VERSION
     )
-    logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7')
+    logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro')
 
     logging.info('\n** Select an area in the Disassembly Window and right')
     logging.info('** click to search on VirusTotal. You can also select a')
@@ -485,7 +501,7 @@ class VTplugin(idaapi.plugin_t):
 
   flags = idaapi.PLUGIN_UNL
   comment = 'VirusTotal Plugin for IDA Pro'
-  help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro 7'
+  help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro'
   wanted_name = 'VirusTotal'
   wanted_hotkey = ''
 
@@ -523,20 +539,24 @@ class VTplugin(idaapi.plugin_t):
       self.menu = Popups()
       self.menu.hook()
       arch_info = idaapi.get_inf_structure()
+      if idaapi.IDA_SDK_VERSION >= 770:
+        target_procname = "procname"
+      else:
+        target_procname = "procName"
 
       try:
-        if arch_info.procName in self.SEARCH_STRICT_SUPPORTED:
+        if arch_info.__getattribute__(target_procname) in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
               'Search for similar code (strict)'
           )
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-        elif arch_info.procName in self.SEARCH_CODE_SUPPORTED:
+        elif arch_info.__getattribute__(target_procname) in self.SEARCH_CODE_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
-          logging.info('\n - Processor detected: %s', arch_info.procName)
+          logging.info('\n - Processor detected: %s', arch_info.__getattribute__(target_procname))
           logging.info(' - Searching for similar code is not available.')
         VTGrepBytes.register(self, 'Search for bytes')
         VTGrepStrings.register(self, 'Search for string')

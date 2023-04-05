@@ -106,3 +106,4 @@ venv.bak/
 .vscode/notes.txt
 plugin/vt_ida/config.py
 
+.DS_Store
