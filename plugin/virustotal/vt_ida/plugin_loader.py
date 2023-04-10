@@ -317,7 +317,8 @@ class CheckSample(threading.Thread):
         return True
       elif response.status_code == 200:
         logging.debug('[VT Plugin] File already available in VirusTotal.')
-
+    elif self.auto_upload:
+        logging.info('[VT Plugin] No API KEY is configured: unable to check file in VirusTotal.')
     return False
 
   def upload_file_to_VT(self):
