@@ -433,7 +433,6 @@ class VTpluginSetup(object):
     if (new_ver[0] > current_ver[0] or
         (new_ver[0] == current_ver[0] and new_ver[1] > current_ver[1])):
       return True
-
     return False
 
   def check_version(self):
@@ -484,10 +483,31 @@ class VTpluginSetup(object):
         VT_IDA_PLUGIN_VERSION
     )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro')
-
     logging.info('\n** Select an area in the Disassembly Window and right')
     logging.info('** click to search on VirusTotal. You can also select a')
     logging.info('** string in the Strings Window.\n')
+
+
+class Error(Exception):
+  pass
+
+
+class IncompatibleIdaVersion(Error):
+  pass
+
+
+def get_procname(arch_info):
+  try:
+    return arch_info.procname
+  except AttributeError:
+    pass
+  try:
+    return arch_info.procName
+  except AttributeError:
+    pass
+  # IDA has changed the API, complain loudly and raise an exception.
+  logging.error('[VT Plugin] Could not get procname from arch_info.')
+  raise IncompatibleIdaVersion('[VT Plugin] Could not get procname from arch_info.')
 
 
 class VTplugin(idaapi.plugin_t):
@@ -540,24 +560,20 @@ class VTplugin(idaapi.plugin_t):
       self.menu = Popups()
       self.menu.hook()
       arch_info = idaapi.get_inf_structure()
-      if idaapi.IDA_SDK_VERSION >= 770:
-        target_procname = "procname"
-      else:
-        target_procname = "procName"
 
       try:
-        if arch_info.__getattribute__(target_procname) in self.SEARCH_STRICT_SUPPORTED:
+        if get_procname(arch_info) in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
               'Search for similar code (strict)'
           )
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-        elif arch_info.__getattribute__(target_procname) in self.SEARCH_CODE_SUPPORTED:
+        elif get_procname(arch_info) in self.SEARCH_CODE_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
         else:
-          logging.info('\n - Processor detected: %s', arch_info.__getattribute__(target_procname))
+          logging.info('\n - Processor detected: %s', get_procname(arch_info))
           logging.info(' - Searching for similar code is not available.')
         VTGrepBytes.register(self, 'Search for bytes')
         VTGrepStrings.register(self, 'Search for string')
