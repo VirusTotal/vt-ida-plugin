@@ -243,11 +243,11 @@ to stop using this plugin.
  
 """, {
     'cHtml1': ida_kernwin.Form.StringLabel(
-        '<a href=\"https://support.virustotal.com/hc/en-us/articles/115002145529-Terms-of-Service\">Terms of Service</a>',
+        '<a href=\"https://docs.virustotal.com/docs/terms-of-service\">Terms of Service</a>',
         tp=ida_kernwin.Form.FT_HTML_LABEL
     ),
     'cHtml2': ida_kernwin.Form.StringLabel(
-        '<a href=\"https://support.virustotal.com/hc/en-us/articles/115002168385-Privacy-Policy\">Privacy Policy</a>',
+        '<a href=\"https://docs.virustotal.com/docs/privacy-policy\">Privacy Policy</a>',
         tp=ida_kernwin.Form.FT_HTML_LABEL
     )
 })
