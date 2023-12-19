@@ -149,4 +149,15 @@ class Disassembler(object):
       return pattern
     else: return 0
 
- 
+
+  @staticmethod
+  def get_ASM_string(addr):
+    """Get current disassembled string of the instruction pointed at addr.
+
+    Args:
+      addr: address of the current instruction
+
+    Returns:
+      String: disassembled line with comments created by IDA Pro
+    """
+    return idc.GetDisasm(addr)

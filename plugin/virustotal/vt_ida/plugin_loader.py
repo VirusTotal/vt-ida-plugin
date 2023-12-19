@@ -24,16 +24,56 @@ import requests
 import threading
 from virustotal import config
 from virustotal import vtgrep
+from virustotal import codeinsight
 try:
   import ConfigParser as configparser
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '0.11'
+VT_IDA_PLUGIN_VERSION = '0.20'
 
 
 def PLUGIN_ENTRY():
   return VTplugin()
+
+class CodeInsightASM(idaapi.action_handler_t):
+  """Performs the right click operation: Search for string."""
+
+  @classmethod
+  def get_name(cls):
+    return cls.__name__
+
+  @classmethod
+  def get_label(cls):
+    return cls.label
+
+  @classmethod
+  def activate(cls, ctx):
+    cls.plugin.query_codeinsight()
+    return 1
+
+  @classmethod
+  def register(cls, plugin, label):
+    cls.plugin = plugin
+    cls.label = label
+    instance = cls()
+
+    return idaapi.register_action(idaapi.action_desc_t(
+        cls.get_name(),
+        instance.get_label(),
+        instance
+        ))
+
+  @classmethod
+  def unregister(cls):
+    idaapi.unregister_action(cls.get_name())
+
+  @classmethod
+  def update(cls, ctx):
+    if ctx.widget_type == idaapi.BWN_DISASM:
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
+    else:
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
 
 class VTGrepStrings(idaapi.action_handler_t):
@@ -207,6 +247,12 @@ class Popups(idaapi.UI_Hooks):
           form,
           popup,
           VTGrepWildCardsFunction.get_name(),
+          'VirusTotal/',
+          )
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          CodeInsightASM.get_name(),
           'VirusTotal/',
           )
     elif idaapi.get_widget_type(form) == idaapi.BWN_STRINGS:
@@ -564,14 +610,14 @@ class VTplugin(idaapi.plugin_t):
       try:
         if get_procname(arch_info) in self.SEARCH_STRICT_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
-          VTGrepWildCardsStrict.register(
-              self,
-              'Search for similar code (strict)'
-          )
+          VTGrepWildCardsStrict.register(self, 'Search for similar code (strict)')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
+          CodeInsightASM.register(self, 'Ask CodeInsight')
+
         elif get_procname(arch_info) in self.SEARCH_CODE_SUPPORTED:
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
+          CodeInsightASM.register(self, 'Ask CodeInsight')
         else:
           logging.info('\n - Processor detected: %s', get_procname(arch_info))
           logging.info(' - Searching for similar code is not available.')
@@ -611,6 +657,21 @@ class VTplugin(idaapi.plugin_t):
           addr_end=addr_func.end_ea
           )
       search_vt.search(True, False)
+
+  @staticmethod
+  def query_codeinsight():
+    addr_current = idc.get_screen_ea()
+    addr_func = idaapi.get_func(addr_current)
+
+    if not addr_func:
+      logging.error('[VT Plugin] Current address doesn\'t belong to a function')
+      ida_kernwin.warning('Point the cursor in an area beneath a function.')
+    else:
+      search_vt = codeinsight.CodeInsightASM(
+          addr_start=addr_func.start_ea,
+          addr_end=addr_func.end_ea
+          )
+      search_vt.askCI()
 
   @staticmethod
   def search_for_bytes():
