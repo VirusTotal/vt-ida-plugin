@@ -25,13 +25,14 @@ import threading
 from virustotal import config
 from virustotal import vtgrep
 from virustotal import codeinsight
+from virustotal.vt_ida.vtpanel import VTPanel
 try:
   import ConfigParser as configparser
 except ImportError:
   import configparser
 
 VT_IDA_PLUGIN_VERSION = '0.20'
-
+widget_panel = None
 
 def PLUGIN_ENTRY():
   return VTplugin()
@@ -660,8 +661,10 @@ class VTplugin(idaapi.plugin_t):
 
   @staticmethod
   def query_codeinsight():
+    global widget_panel
     addr_current = idc.get_screen_ea()
     addr_func = idaapi.get_func(addr_current)
+    ci_report =  None
 
     if not addr_func:
       logging.error('[VT Plugin] Current address doesn\'t belong to a function')
@@ -671,7 +674,18 @@ class VTplugin(idaapi.plugin_t):
           addr_start=addr_func.start_ea,
           addr_end=addr_func.end_ea
           )
-      search_vt.askCI()
+      ci_report = search_vt.askCI()
+      ci_report = "Testing"
+
+    if ci_report:
+      widget_panel = VTPanel()
+      widget_panel.Show("VirusTotal")
+      idaapi.set_dock_pos('VirusTotal', 'IDA View-A', idaapi.DP_RIGHT)
+      widget_panel.set_default_data(ci_report)
+      widget_panel = VTPanel()
+    else: 
+      logging.error('[VT Plugin] No output from CodeInsight')
+      ida_kernwin.warning('No output from CodeInsight')
 
   @staticmethod
   def search_for_bytes():

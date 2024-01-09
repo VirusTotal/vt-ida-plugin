@@ -24,11 +24,10 @@ try:
 except ImportError:
   from urllib.parse import quote
 
- 
-class CodeInsightASM(object):
 
-  _MIN_QUERY_SIZE = 100      # number of bytes
-  _MAX_QUERY_SIZE = 4098   # Maximun length of a query string
+class CodeInsightASM(object):
+  _MIN_QUERY_SIZE = 40      # number of bytes
+  _MAX_QUERY_SIZE = 4096    # Maximun length of a query string
 
   def __init__(self, *args, **kwargs):
     self.string_searching = kwargs.get('string', False)
@@ -97,4 +96,5 @@ class CodeInsightASM(object):
         logging.error('[CodeInsight] The query produced is too long.')
         Widgets.show_warning('The query produced is too long.')
       else:
+        # Right now just print the disassembled code in the output window.
         print(str_buf)
