@@ -482,7 +482,7 @@ class VTpluginSetup(object):
           )
 
     logging.info(
-        '\n** VT Plugin for IDA Pro v%s (c) Google, 2023',
+        '\n** VT Plugin for IDA Pro v%s (c) Google, 2025',
         VT_IDA_PLUGIN_VERSION
     )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro')
