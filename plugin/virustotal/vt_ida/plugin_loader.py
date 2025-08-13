@@ -29,6 +29,9 @@ try:
 except ImportError:
   import configparser
 
+if idaapi.IDA_SDK_VERSION >= 900:
+  import ida_ida
+
 VT_IDA_PLUGIN_VERSION = '0.11'
 
 
@@ -559,10 +562,16 @@ class VTplugin(idaapi.plugin_t):
 
       self.menu = Popups()
       self.menu.hook()
-      arch_info = idaapi.get_inf_structure()
+     
+      if idaapi.IDA_SDK_VERSION >= 900:
+          proc_name = ida_ida.inf_get_procname()
+      else:
+          arch_info = idaapi.get_inf_structure()
+          proc_name = get_procname(arch_info)
 
       try:
-        if get_procname(arch_info) in self.SEARCH_STRICT_SUPPORTED:
+        logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
+        if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsStrict.register(
               self,
