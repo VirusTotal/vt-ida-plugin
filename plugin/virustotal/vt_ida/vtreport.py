@@ -13,7 +13,6 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
-from virustotal.vt_ida.ui.CIDebug import Ui_CIDebugMain
 import logging
 import json
 import time
@@ -27,7 +26,6 @@ class VTReportWindow(object):
   include_knowledge = False
 
   def __init__(self):
-    self._debugwindow = Ui_CIDebugMain()
     self._debugwindow.setupUi()
     self._debugwindow.pb_save_revision.clicked.connect(self._save_analysis)
     self._debugwindow.pb_save_knowledge.clicked.connect(self._save_knowledge)

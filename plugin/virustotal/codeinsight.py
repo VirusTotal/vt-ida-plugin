@@ -20,7 +20,6 @@ from virustotal.vt_ida.disassembler import Disassembler
 import threading
 import json
 import base64
-import traceback
 from virustotal.ci_notebook import CI_Notebook
 from virustotal.vt_ida.vtwidgets import VTWidgets
 
