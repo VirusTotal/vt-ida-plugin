@@ -15,8 +15,7 @@ __author__ = 'gerardofn@virustotal.com'
 
 import ida_kernwin
 
-
-class Widgets(object):
+class VTWidgets(object):
 
   @staticmethod
   def show_info(msg):
@@ -25,4 +24,13 @@ class Widgets(object):
   @staticmethod
   def show_warning(msg):
     ida_kernwin.warning(msg)
- 
+
+  @staticmethod
+  def show_wait(msg):
+    ida_kernwin.show_wait_box(msg)
+
+  @staticmethod
+  def hide_wait():
+    ida_kernwin.hide_wait_box()
+
+

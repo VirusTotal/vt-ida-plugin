@@ -16,7 +16,7 @@ __author__ = 'gerardofn@virustotal.com'
 import binascii
 import logging
 from virustotal.vt_ida.disassembler import Disassembler
-from virustotal.vt_ida.widgets import Widgets
+from virustotal.vt_ida.vtpanel import VTWidgets
 import webbrowser
 
 try:
@@ -52,6 +52,7 @@ class Bytes(object):
 
   def combinable(self, next_slice):
     # Check if current slice can be combined with the next slice
+
     if next_slice:
       if not isinstance(next_slice, Bytes) and self.len() >= 8:
         return False
@@ -61,6 +62,7 @@ class Bytes(object):
 
   def combine(self, next_slice):
     # Combine current slice with the next one
+    
     if next_slice:
       if isinstance(next_slice, Bytes):
         self.append(next_slice)
@@ -170,7 +172,7 @@ class VTGrepSearch(object):
     self.addr_end = kwargs.get('addr_end', 0)
 
   @staticmethod
-  def __generate_slices(buf):
+  def _generate_slices(buf):
     """Read a string buffer and generates wildcards and bytes objects."""
 
     list_slices = buf.split()
@@ -237,7 +239,7 @@ class VTGrepSearch(object):
       List: list of slices where each slice can be a Bytes or WildCards object.
     """
 
-    query_slices = VTGrepSearch.__generate_slices(buf)
+    query_slices = VTGrepSearch._generate_slices(buf)
     reduced_list = []
 
     logging.debug('[VTGREP] Original query: %s', buf)
@@ -255,7 +257,7 @@ class VTGrepSearch(object):
     buf = ''.join(str(element.get()) for element in reduced_list)
     return reduced_list
 
-  def __create_query(self, wildcards, strict):
+  def _create_query(self, wildcards, strict):
     """Returns a buffer containing all the bytes of the instructions selected.
 
       If there are instructions that contain offsets or memory addresses,
@@ -320,23 +322,23 @@ class VTGrepSearch(object):
     if self.string_searching:
       str_buf = binascii.hexlify(self.string_searching).decode('utf-8')
     else:
-      str_buf = self.__create_query(wildcards, strict)
+      str_buf = self._create_query(wildcards, strict)
       if wildcards and str_buf is not None:
         str_buf = self.__sanitize(self.__reduce_query(str_buf))
 
     # After creating the search string, checks if new size is valid
     if str_buf is None:
       logging.error('[VTGREP] Invalid query length or area selected.')
-      Widgets.show_warning('Invalid query length or area selected.')
+      VTWidgets.show_warning('Invalid query length or area selected.')
     else:
       len_query = len(str_buf)
 
       if len_query and self._MIN_QUERY_SIZE >= len_query:
         logging.error('[VTGREP] The query produced is too short.')
-        Widgets.show_warning('The query produced is too short.')
+        VTWidgets.show_warning('The query produced is too short.')
       elif len_query and len_query > self._MAX_QUERY_SIZE:
         logging.error('[VTGREP] The query produced is too long.')
-        Widgets.show_warning('The query produced is too long.')
+        VTWidgets.show_warning('The query produced is too long.')
       else:
         str_buf = '{' + str_buf + '}'
         vtgrep_url = 'www.virustotal.com/gui/search/content:{}/files'
@@ -347,4 +349,4 @@ class VTGrepSearch(object):
           webbrowser.open_new(url)
         except:
           logging.error('[VTGREP] Error while opening the web browser.')
-          Widgets.show_warning('Error while opening the web browser.')
+          VTWidgets.show_warning('Error while opening the web browser.')
