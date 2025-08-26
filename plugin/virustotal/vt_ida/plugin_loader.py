@@ -27,6 +27,7 @@ from virustotal import config
 from virustotal import vtgrep
 from virustotal import codeinsight
 from virustotal.vt_ida.vtpanel import VTPanel
+from virustotal.vt_ida.vtwidgets import VTWidgets
 
 if idaapi.IDA_SDK_VERSION >= 900:
   import ida_ida
@@ -313,7 +314,7 @@ class MenuVTPanel(idaapi.action_handler_t):
   def activate(cls, ctx):
     global widget_panel
 
-    if (config.API_KEY != None) & (not widget_panel.isVisible()):
+    if (len(config.API_KEY) > 0) & (not widget_panel.isVisible()):
 
       widget_panel.Show("VirusTotal")
       idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
@@ -321,8 +322,9 @@ class MenuVTPanel(idaapi.action_handler_t):
       widget_panel.set_data(fhash = calculate_hash(file_path))
 
     else:
-      if not config.API_KEY:
-        logging.error('[VT Plugin] No API key has been configured.')
+      if len(config.API_KEY) == 0:
+        logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
+        VTWidgets.show_warning('A VirusTotal API Key has not been configured,\nplease indicate your API KEY in the \"config.py\" file.')
 
   @classmethod
   def update(cls, ctx):

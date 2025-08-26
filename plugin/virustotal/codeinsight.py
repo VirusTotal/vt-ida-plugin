@@ -133,6 +133,11 @@ class QueryCodeInsight(threading.Thread):
     global CI_DISASSEMBLED, CI_DECOMPILED
     global ci_notebook
  
+    if len(config.API_KEY) == 0:
+      logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
+      VTWidgets.show_warning('A VirusTotal API Key has not been configured,\nplease indicate your API KEY in the "config.py" file.')
+      return
+
     API_URL = 'https://www.virustotal.com'
     endpoint = 'api/v3/codeinsights/analyse-binary'
     headers_apiv3 = {
