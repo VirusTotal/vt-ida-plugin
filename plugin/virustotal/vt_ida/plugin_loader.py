@@ -711,8 +711,10 @@ class VTplugin(idaapi.plugin_t):
         if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-          CodeInsightASM.register(self, 'Ask CodeInsight')
-          CodeInsightDecompiled.register(self, 'Ask CodeInsight')
+          if len(config.API_KEY) > 0:
+            logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
+            CodeInsightASM.register(self, 'Ask CodeInsight')
+            CodeInsightDecompiled.register(self, 'Ask CodeInsight')
 
           ### Register menu entry
           current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
