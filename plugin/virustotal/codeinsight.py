@@ -104,7 +104,6 @@ class QueryCodeInsight(threading.Thread):
     decoded_str = ''
     json_data = json.loads(response)
     answer = json_data['data']
-    print(response)
    
     if 'error' in answer:
       error_response = json.loads(answer['error'])
@@ -119,7 +118,6 @@ class QueryCodeInsight(threading.Thread):
     
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
-      print(decoded_str)
     except: 
       logging.debug('[VT Plugin] ERROR decoding CodeInsight response: %s', response)  
     
