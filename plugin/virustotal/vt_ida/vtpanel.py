@@ -94,7 +94,7 @@ class VTPanel(PluginForm):
     global ci_notebook
 
     if self._panel.cb_faddress.count() != 0:       
-      msg = """Importing a new CodeInsight Notebook
+      msg = """Importing a new Code Insight Notebook
 
 The current notebook will be replaced with a new one.
 
@@ -206,7 +206,7 @@ The current notebook will be replaced with a new one.
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
     except:
-      logging.error('[VT Plugin] Invalid answer received from CodeInsight')
+      logging.error('[VT Plugin] Invalid answer received from Code Insight')
       self.summary = None
       self.description= None
       return
@@ -243,7 +243,7 @@ The current notebook will be replaced with a new one.
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
     except:
-      logging.error('[VT Plugin] Invalid answer received from CodeInsight')
+      logging.error('[VT Plugin] Invalid answer received from Code Insight')
       return
     
     # setting up default showed data
@@ -304,7 +304,7 @@ The current notebook will be replaced with a new one.
         final_comment = ""
         if start_pos != -1:
           # An old CodeInsight comment exists, so replace it.
-          logging.debug('[VT Plugin] Updating existing CodeInsight comment for %s.', key_str)
+          logging.debug('[VT Plugin] Updating existing Code Insight comment for %s.', key_str)
           end_pos = current_comment.find(end_marker, start_pos)
           if end_pos != -1:
             # Preserve text before and after the old block.
@@ -317,8 +317,8 @@ The current notebook will be replaced with a new one.
             logging.warning('[VT Plugin] Malformed comment in %s. Appending.', key_str)
             final_comment = current_comment + '\n\n' + new_comment_block
         else:
-          # No old CodeInsight comment. Append the new block to existing comments.
-          logging.debug('[VT Plugin] Adding new CodeInsight comment for %s.', key_str)
+          # No old Code Insight comment. Append the new block to existing comments.
+          logging.debug('[VT Plugin] Adding new Code Insight comment for %s.', key_str)
           if current_comment:
             final_comment = current_comment + '\n\n' + new_comment_block
           else:
@@ -461,7 +461,7 @@ The current notebook will be replaced with a new one.
     """
     global ci_notebook
 
-    # Check if current function address is in the CodeInsight Notebook
+    # Check if current function address is in the Code Insight Notebook
     if ci_notebook.get_page(hex(self.faddr)):
       logging.debug('[VT Plugin] Discarding analysis for %s', hex(self.faddr))
       ci_notebook.discard_page(hex(self.faddr))

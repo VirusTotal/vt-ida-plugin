@@ -53,10 +53,10 @@ class QueryCodeInsight(threading.Thread):
     self.code = kwargs.get('code', '')
 
     if self.use_codetype: 
-      logging.debug('[VT Plugin] CodeInsight using src code type: %s', self.use_codetype)
+      logging.debug('[VT Plugin] Code Insight using src code type: %s', self.use_codetype)
 
     if self.code == '':
-      logging.error('[VT Plugin] No proper query created for CodeInsight')
+      logging.error('[VT Plugin] No proper query created for Code Insight')
       exit()
 
     threading.Thread.__init__(self)
@@ -119,7 +119,7 @@ class QueryCodeInsight(threading.Thread):
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
     except: 
-      logging.debug('[VT Plugin] ERROR decoding CodeInsight response: %s', response)  
+      logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)  
     
     return decoded_str
   
@@ -174,20 +174,20 @@ class QueryCodeInsight(threading.Thread):
 
       payload['history'] = history
       
-    logging.debug('[VT Plugin] Sending request to CodeInsight')
+    logging.debug('[VT Plugin] Sending request to Code Insight')
     logging.debug('[VT Plugin] Payload: %s', payload)
 
     try:
       response = requests.post(f'{API_URL}/{endpoint}', json = {'data': payload}, headers=headers_apiv3)
     except:
-      logging.debug('[VT Plugin] ERROR: unable to connect to CodeInsight')
-      self._error_msg = 'ERROR: unable to connect to CodeInsight'
+      logging.debug('[VT Plugin] ERROR: unable to connect to Code Insight')
+      self._error_msg = 'ERROR: unable to connect to Code Insight'
       return
 
     if response.status_code == 200:
       self._return = self._process_output(response.text)
     else:
-      logging.debug('[VT Plugin] ERROR connecting CodeInsight: %s', response.text)
+      logging.debug('[VT Plugin] ERROR connecting Code Insight: %s', response.text)
       self._error_msg = response.text
   
   def join(self, *args):
