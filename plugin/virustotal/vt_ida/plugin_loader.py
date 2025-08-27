@@ -88,7 +88,7 @@ def calculate_hash(input_file):
 
 
 class CodeInsightASM(idaapi.action_handler_t):
-  """Performs the right click operation: query CodeInsight for disassembled code."""
+  """Performs the right click operation: query Code Insight for disassembled code."""
 
   @classmethod
   def get_name(cls):
@@ -127,7 +127,7 @@ class CodeInsightASM(idaapi.action_handler_t):
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
 class CodeInsightDecompiled(idaapi.action_handler_t):
-  """Performs the right click operation: query CodeInsight for decompiled code."""
+  """Performs the right click operation: query Code Insight for decompiled code."""
 
   @classmethod
   def get_name(cls):
@@ -618,12 +618,12 @@ class VTpluginSetup(object):
     logging.info('**    - Right-click in the Disassembly or Strings view to search for.')
     logging.info('**    - Exact bytes, similar code (ignoring addresses/constants), and similar functions.')
     logging.info('**    - Selected strings from the Strings window.')
-    logging.info('** 2. CodeInsight Notebook:')
+    logging.info('** 2. Code Insight Notebook:')
     logging.info('**    - Get AI-powered analysis for any function (disassembled or decompiled).')
     logging.info('**    - Manage analyses in a persistent, dockable panel (View -> Open subviews -> VirusTotal).')
     logging.info('**    - Automatically add analysis summaries as comments to your functions.')
     logging.info('**    - Import/Export notebooks to share your work.')
-    logging.info('\n** To get started with CodeInsight, add your VT API key to config.py\n')
+    logging.info('\n** To get started with Code Insight, add your VT API key to config.py\n')
 
 
 class Error(Exception):
@@ -713,8 +713,8 @@ class VTplugin(idaapi.plugin_t):
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
           if len(config.API_KEY) > 0:
             logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
-            CodeInsightASM.register(self, 'Ask CodeInsight')
-            CodeInsightDecompiled.register(self, 'Ask CodeInsight')
+            CodeInsightASM.register(self, 'Ask Code Insight')
+            CodeInsightDecompiled.register(self, 'Ask Code Insight')
 
           ### Register menu entry
           current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))

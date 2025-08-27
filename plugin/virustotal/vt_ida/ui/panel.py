@@ -282,5 +282,5 @@ class Ui_panelUI(object):
         self.pb_autocomment.setText(_translate("panelUI", "Autocomment"))
         self.pb_load.setText(_translate("panelUI", "Load"))
         self.pb_export.setText(_translate("panelUI", "Export"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_codeinsight), _translate("panelUI", "CodeInsight Notebook"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_codeinsight), _translate("panelUI", "Code Insight Notebook"))
 
