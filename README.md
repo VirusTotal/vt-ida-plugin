@@ -1,6 +1,6 @@
 # VirusTotal Plugin for IDA Pro
 
-This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **0.90**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
+This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.0**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
 
 The plugin offers two core functionalities:
 1.  **VTGrep Integration**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
@@ -18,7 +18,7 @@ The plugin offers two core functionalities:
 The CodeInsight Notebook is a powerful feature that lives in its own dockable panel (`View -> Open subviews -> VirusTotal`).
 
 - **AI-Powered Analysis**: Request an AI-generated summary and detailed description for any function (disassembled or decompiled).
-- **Persistent Workspace**: All analyses are saved in a "notebook." This notebook persists across IDA sessions.
+- **Persistent Workspace**: All analyses are saved in a "notebook" that can be loaded again across IDA sessions.
 - **Edit and Refine**: You can edit the AI-generated analysis to correct it or add your own insights.
 - **Automatic Commenting**: Automatically populate IDA's function comments with the analysis summary for all functions in your notebook.
 - **Import/Export**: Share your analysis with colleagues by exporting the notebook to a JSON file, or import one to get up to speed on a shared binary.
@@ -48,7 +48,7 @@ From the **Strings View**:
     ```bash
     $ pip install requests
     ```
-2.  Copy the entire `plugin/virustotal` directory into your IDA Pro plugins folder.
+2.  Copy the entire `plugins/virustotal` directory into your IDA Pro plugins folder.
 
 | OS      | Default Plugin Path             |
 | ------- | ------------------------------- |
@@ -72,7 +72,7 @@ On the first run, the plugin will ask for your consent to automatically upload s
 
 To use the **CodeInsight** features, you must add your VirusTotal API key to the configuration file:
 
-1.  Locate the configuration file: `[USER_IDA_DIR]/virustotal.conf`
+1.  Locate the configuration file: `[USER_IDA_DIR]/plugins/virustotal/config.py`
 2.  Open the file and add your key:
     ```ini
     API_KEY = 'YOUR_VT_API_KEY_HERE'
@@ -106,4 +106,6 @@ The "Search for similar code" features are fully supported on the following proc
 - **ARM**
 
 While other architectures may work, they have not been officially tested. Raw byte and string searches work on all architectures.
+
+Check IDA Pro's output window for any message that may need your attention.
 

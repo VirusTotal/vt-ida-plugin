@@ -1,4 +1,4 @@
-# Copyright 2020 Google Inc. All Rights Reserved.
+# Copyright 2025 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -236,11 +236,8 @@ The current notebook will be replaced with a new one.
       return
     
     ci_src = ida_hexrays.decompile(faddr)
-    #VTWidgets.show_wait('NODELAY\nSending request to CodeInsight...')
     self.ci_search = codeinsight.CodeInsightDecompiled(code_src = ci_src)
     self.ci_report = self.ci_search.askCI(use_codetype = codeinsight.CI_DECOMPILED)
-
-    #VTWidgets.hide_wait()
 
     try:
       self.summary = self.ci_report['summary']
