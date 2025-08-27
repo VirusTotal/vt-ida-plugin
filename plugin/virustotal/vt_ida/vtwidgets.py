@@ -1,4 +1,4 @@
-# Copyright 2020 Google Inc. All Rights Reserved.
+# Copyright 2025 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,8 +15,7 @@ __author__ = 'gerardofn@virustotal.com'
 
 import ida_kernwin
 
-
-class Widgets(object):
+class VTWidgets(object):
 
   @staticmethod
   def show_info(msg):
@@ -25,4 +24,13 @@ class Widgets(object):
   @staticmethod
   def show_warning(msg):
     ida_kernwin.warning(msg)
- 
+
+  @staticmethod
+  def show_wait(msg):
+    ida_kernwin.show_wait_box(msg)
+
+  @staticmethod
+  def hide_wait():
+    ida_kernwin.hide_wait_box()
+
+

@@ -1,4 +1,4 @@
-# Copyright 2020 Google Inc. All Rights Reserved.
+# Copyright 2025 Google Inc. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -18,26 +18,152 @@ import hashlib
 import ida_kernwin
 import idaapi
 import idc
+import idautils
 import logging
 import os
 import requests
 import threading
 from virustotal import config
 from virustotal import vtgrep
+from virustotal import codeinsight
+from virustotal.vt_ida.vtpanel import VTPanel
+from virustotal.vt_ida.vtwidgets import VTWidgets
+
+if idaapi.IDA_SDK_VERSION >= 900:
+  import ida_ida
+
 try:
   import ConfigParser as configparser
 except ImportError:
   import configparser
 
-if idaapi.IDA_SDK_VERSION >= 900:
-  import ida_ida
+VT_IDA_PLUGIN_VERSION = '0.90'
+widget_panel = VTPanel()
 
-VT_IDA_PLUGIN_VERSION = '0.11'
-
+if config.DEBUG:
+  logging.basicConfig(
+      stream=sys.stdout,
+      level=logging.DEBUG,
+      format='%(message)s'
+      )
+else:
+  logging.basicConfig(
+      stream=sys.stdout,
+      level=logging.INFO,
+      format='%(message)s'
+      )
 
 def PLUGIN_ENTRY():
   return VTplugin()
 
+def calculate_hash(input_file):
+  """Return hash if the file hash has been properly calculated."""
+
+  file_hash = None
+
+  if os.path.isfile(input_file):
+    hash_f = hashlib.sha256()
+    logging.debug('[VT Plugin] Input file available.')
+    with open(input_file, 'rb') as file_r:
+      try:
+        for file_buffer in iter(lambda: file_r.read(8192), b''):
+          hash_f.update(file_buffer)
+        file_hash = hash_f.hexdigest()
+        logging.debug('[VT Plugin] Input file hash been calculated.')
+      except:
+        logging.debug('[VT Plugin] Can\'t load the input file.')
+  else:
+    logging.debug('[VT Plugin] Input file not available.')
+    tmp_hash = idautils.GetInputFileMD5()
+    if len(tmp_hash) != 32:
+      logging.error('[VT Plugin] IDAPYTHON API returned a wrong hash value.')
+    else:
+      file_hash = tmp_hash
+
+  if file_hash:
+    return file_hash
+  
+  logging.error('[VT Plugin] Input file hash error.')
+  return None
+
+
+class CodeInsightASM(idaapi.action_handler_t):
+  """Performs the right click operation: query Code Insight for disassembled code."""
+
+  @classmethod
+  def get_name(cls):
+    return cls.__name__
+
+  @classmethod
+  def get_label(cls):
+    return cls.label
+
+  @classmethod
+  def activate(cls, ctx):
+    cls.plugin.query_codeinsight(code_type=codeinsight.CI_DISASSEMBLED)
+    return 1
+
+  @classmethod
+  def register(cls, plugin, label):
+    cls.plugin = plugin
+    cls.label = label
+    instance = cls()
+
+    return idaapi.register_action(idaapi.action_desc_t(
+        cls.get_name(),
+        instance.get_label(),
+        instance
+        ))
+
+  @classmethod
+  def unregister(cls):
+    idaapi.unregister_action(cls.get_name())
+
+  @classmethod
+  def update(cls, ctx):
+    if ctx.widget_type == idaapi.BWN_DISASM:
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
+    else:
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
+
+class CodeInsightDecompiled(idaapi.action_handler_t):
+  """Performs the right click operation: query Code Insight for decompiled code."""
+
+  @classmethod
+  def get_name(cls):
+    return cls.__name__
+
+  @classmethod
+  def get_label(cls):
+    return cls.label
+
+  @classmethod
+  def activate(cls, ctx):
+    cls.plugin.query_codeinsight(code_type=codeinsight.CI_DECOMPILED)
+    return 1
+
+  @classmethod
+  def register(cls, plugin, label):
+    cls.plugin = plugin
+    cls.label = label
+    instance = cls()
+
+    return idaapi.register_action(idaapi.action_desc_t(
+        cls.get_name(),
+        instance.get_label(),
+        instance
+        ))
+
+  @classmethod
+  def unregister(cls):
+    idaapi.unregister_action(cls.get_name())
+
+  @classmethod
+  def update(cls, ctx):
+    if ctx.widget_type == idaapi.BWN_PSEUDOCODE:
+      return ida_kernwin.AST_ENABLE_FOR_WIDGET
+    else:
+      return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
 class VTGrepStrings(idaapi.action_handler_t):
   """Performs the right click operation: Search for string."""
@@ -182,12 +308,48 @@ class VTGrepBytes(idaapi.action_handler_t):
       return ida_kernwin.AST_DISABLE_FOR_WIDGET
 
 
+class MenuVTPanel(idaapi.action_handler_t):
+
+  @classmethod
+  def activate(cls, ctx):
+    global widget_panel
+
+    if (len(config.API_KEY) > 0) & (not widget_panel.isVisible()):
+
+      widget_panel.Show("VirusTotal")
+      idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+      file_path = idaapi.get_input_file_path()      
+      widget_panel.set_data(fhash = calculate_hash(file_path))
+
+    else:
+      if len(config.API_KEY) == 0:
+        logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
+        VTWidgets.show_warning('A VirusTotal API Key has not been configured,\nplease indicate your API KEY in the \"config.py\" file.')
+
+  @classmethod
+  def update(cls, ctx):
+    return ida_kernwin.AST_ENABLE_ALWAYS
+
+
 class Popups(idaapi.UI_Hooks):
   """Declares methods to be called on right click operations."""
 
   @staticmethod
   def finish_populating_widget_popup(form, popup):
     if idaapi.get_widget_type(form) == idaapi.BWN_DISASM:
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          CodeInsightASM.get_name(),
+          'VirusTotal/',
+          )
+      idaapi.attach_action_to_popup(
+            form,
+            popup,
+            None,
+            "VirusTotal/",
+            idaapi.SETMENU_INS
+          )
       idaapi.attach_action_to_popup(
           form,
           popup,
@@ -217,6 +379,12 @@ class Popups(idaapi.UI_Hooks):
           form,
           popup,
           VTGrepStrings.get_name(),
+          'VirusTotal/')
+    elif idaapi.get_widget_type(form) == idaapi.BWN_PSEUDOCODE:
+      idaapi.attach_action_to_popup(
+          form,
+          popup,
+          CodeInsightDecompiled.get_name(),
           'VirusTotal/')
 
 
@@ -254,46 +422,18 @@ to stop using this plugin.
         tp=ida_kernwin.Form.FT_HTML_LABEL
     )
 })
-
+   
 
 class CheckSample(threading.Thread):
+  auto_upload = None
+  input_file = None
+  file_hash = None
 
   def __init__(self, upload, path):
     self.auto_upload = upload
     self.input_file = path
-    self.file_hash = None    
+    self.file_hash = calculate_hash(input_file=path)
     threading.Thread.__init__(self)
-
-  def calculate_hash(self):
-    """Return hash if the file hash has been properly calculated."""
-
-    if os.path.isfile(self.input_file):
-      hash_f = hashlib.sha256()
-      logging.debug('[VT Plugin] Input file available.')
-      with open(self.input_file, 'rb') as file_r:
-        try:
-          for file_buffer in iter(lambda: file_r.read(8192), b''):
-            hash_f.update(file_buffer)
-          self.file_hash = hash_f.hexdigest()
-          logging.debug('[VT Plugin] Input file hash been calculated.')
-        except:
-          logging.debug('[VT Plugin] Can\'t load the input file.')
-    else:
-      logging.debug('[VT Plugin] Input file not available.')
-      tmp_hash = idautils.GetInputFileMD5()
-      if len(tmp_hash) != 32:
-        logging.error('[VT Plugin] IDAPYTHON API returned a wrong hash value.')
-      else:
-        self.file_hash = tmp_hash
-
-    if self.file_hash:
-      return self.file_hash
-    else:
-      if self.auto_upload:
-        logging.error('[VT Plugin] Input file hash error.')
-      else:
-        logging.debug('[VT Plugin] Input file hash error.')
-      return None
 
   def check_file_missing_in_VT(self):
     """Return True if the file is not available at VirusTotal."""
@@ -371,6 +511,7 @@ class VTpluginSetup(object):
   valid_setup = False
   file_path = ''
   file_name = ''
+  file_hash = None
   vt_plugin_logger = None
 
   @staticmethod
@@ -465,30 +606,24 @@ class VTpluginSetup(object):
     self.vt_cfgfile = cfgfile
     self.file_path = idaapi.get_input_file_path()
     self.file_name = idc.get_root_filename()
-
-    logging.getLogger(__name__).addHandler(logging.NullHandler())
-
-    if config.DEBUG:
-      logging.basicConfig(
-          stream=sys.stdout,
-          level=logging.DEBUG,
-          format='%(message)s'
-          )
-    else:
-      logging.basicConfig(
-          stream=sys.stdout,
-          level=logging.INFO,
-          format='%(message)s'
-          )
+    self.file_hash = calculate_hash(self.file_path)
 
     logging.info(
         '\n** VT Plugin for IDA Pro v%s (c) Google, 2025',
         VT_IDA_PLUGIN_VERSION
     )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro')
-    logging.info('\n** Select an area in the Disassembly Window and right')
-    logging.info('** click to search on VirusTotal. You can also select a')
-    logging.info('** string in the Strings Window.\n')
+    logging.info('\n** This plugin provides two main features:')
+    logging.info('** 1. Code Similarity Search (VTGrep):')
+    logging.info('**    - Right-click in the Disassembly or Strings view to search for.')
+    logging.info('**    - Exact bytes, similar code (ignoring addresses/constants), and similar functions.')
+    logging.info('**    - Selected strings from the Strings window.')
+    logging.info('** 2. Code Insight Notebook:')
+    logging.info('**    - Get AI-powered analysis for any function (disassembled or decompiled).')
+    logging.info('**    - Manage analyses in a persistent, dockable panel (View -> Open subviews -> VirusTotal).')
+    logging.info('**    - Automatically add analysis summaries as comments to your functions.')
+    logging.info('**    - Import/Export notebooks to share your work.')
+    logging.info('\n** To get started with Code Insight, add your VT API key to config.py\n')
 
 
 class Error(Exception):
@@ -528,6 +663,8 @@ class VTplugin(idaapi.plugin_t):
   help = 'VirusTotal integration plugin for Hex-Ray\'s IDA Pro'
   wanted_name = 'VirusTotal'
   wanted_hotkey = ''
+  vtpanel = None
+  vtsetup = None
 
   def init(self):
     """Set up menu hooks and implements search methods."""
@@ -535,55 +672,79 @@ class VTplugin(idaapi.plugin_t):
     valid_config = False
     self.menu = None
     config_file = os.path.join(idaapi.get_user_idadir(), 'virustotal.conf')
-    vtsetup = VTpluginSetup(config_file)
+    self.vtsetup = VTpluginSetup(config_file)
 
-    if vtsetup.check_version():
+    if self.vtsetup.check_version():
       ida_kernwin.info('VirusTotal\'s IDA Pro Plugin\nNew version available!')
       logging.info('[VT Plugin] There\'s a new version of this plugin!')
     else:
       logging.debug('[VT Plugin] No update available.')
 
     if os.path.exists(config_file):
-      valid_config = vtsetup.read_config()
+      valid_config = self.vtsetup.read_config()
     else:
-      answer = vtsetup.show_warning()
+      answer = self.vtsetup.show_warning()
       if answer == 1:     # OK
-        vtsetup.auto_upload = True
-        valid_config = vtsetup.write_config()
+        self.vtsetup.auto_upload = True
+        valid_config = self.vtsetup.write_config()
       elif answer == 0:   # NO
-        vtsetup.auto_upload = False
-        valid_config = vtsetup.write_config()
+        self.vtsetup.auto_upload = False
+        valid_config = self.vtsetup.write_config()
       elif answer == -1:  # Cancel
         valid_config = False
 
     if valid_config:
-      checksample = CheckSample(vtsetup.auto_upload, vtsetup.file_path)
-      checksample.start()
+      file_sample = CheckSample(self.vtsetup.auto_upload, self.vtsetup.file_path)
+      file_sample.start()
 
       self.menu = Popups()
       self.menu.hook()
-     
+      
       if idaapi.IDA_SDK_VERSION >= 900:
-          proc_name = ida_ida.inf_get_procname()
+        proc_name = ida_ida.inf_get_procname()
       else:
-          arch_info = idaapi.get_inf_structure()
-          proc_name = get_procname(arch_info)
+        arch_info = idaapi.get_inf_structure()
+        proc_name = get_procname(arch_info)
 
       try:
         logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
         if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
           VTGrepWildcards.register(self, 'Search for similar code')
-          VTGrepWildCardsStrict.register(
-              self,
-              'Search for similar code (strict)'
-          )
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-        elif get_procname(arch_info) in self.SEARCH_CODE_SUPPORTED:
-          VTGrepWildcards.register(self, 'Search for similar code')
-          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
+          if len(config.API_KEY) > 0:
+            logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
+            CodeInsightASM.register(self, 'Ask Code Insight')
+            CodeInsightDecompiled.register(self, 'Ask Code Insight')
+
+          ### Register menu entry
+          current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+          file_icon = os.path.join(current_path,
+                                   'ui',
+                                   'resources',
+                                   'vt_icon.png')
+          vticon_data = open(file_icon, 'rb').read()
+          vtmenu = idaapi.load_custom_icon(data=vticon_data)
+          action_desc = idaapi.action_desc_t(
+              'my:vtpanel',
+              'VirusTotal',
+              MenuVTPanel(),
+              '',
+              'Show VirusTotal panel with information about the current file',
+              vtmenu)
+
+          idaapi.register_action(action_desc)
+          idaapi.attach_action_to_menu(
+              'View/Open subviews/',
+              'my:vtpanel',
+              idaapi.SETMENU_APP)
+
+          if proc_name in self.SEARCH_STRICT_SUPPORTED:
+            VTGrepWildCardsStrict.register(self, 'Search for similar code (strict)')
+
         else:
           logging.info('\n - Processor detected: %s', get_procname(arch_info))
           logging.info(' - Searching for similar code is not available.')
+        
         VTGrepBytes.register(self, 'Search for bytes')
         VTGrepStrings.register(self, 'Search for string')
       except:
@@ -614,12 +775,38 @@ class VTplugin(idaapi.plugin_t):
     if not addr_func:
       logging.error('[VT Plugin] Current address doesn\'t belong to a function')
       ida_kernwin.warning('Point the cursor in an area beneath a function.')
+      return
+
+    search_vt = vtgrep.VTGrepSearch(
+        addr_start=addr_func.start_ea,
+        addr_end=addr_func.end_ea
+        )
+    search_vt.search(True, False)
+
+  def query_codeinsight(self, *args, **kwargs):
+   
+    code_type = kwargs.get('code_type', None)
+    current_address = idc.get_screen_ea()
+    addr_func = idaapi.get_func(current_address)
+  
+    if widget_panel.isVisible():
+      widget_panel.clean_view()
+
+    if not widget_panel.isVisible():
+      widget_panel.Show("VirusTotal")
+      idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+
+    try:
+      faddr = addr_func.start_ea
+    except:
+      faddr = None
+
+    if faddr:
+      widget_panel.set_data(faddr,
+                            fhash = self.vtsetup.file_hash, 
+                            ctype = code_type)
     else:
-      search_vt = vtgrep.VTGrepSearch(
-          addr_start=addr_func.start_ea,
-          addr_end=addr_func.end_ea
-          )
-      search_vt.search(True, False)
+      logging.info('[VT Plugin] Current address doesn\'t belong to a function')
 
   @staticmethod
   def search_for_bytes():

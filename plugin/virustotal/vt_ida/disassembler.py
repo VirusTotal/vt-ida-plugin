@@ -149,4 +149,48 @@ class Disassembler(object):
       return pattern
     else: return 0
 
- 
+
+  @staticmethod
+  def get_ASM_string(addr):
+    """Get current disassembled string of the instruction pointed at addr.
+
+    Args:
+      addr: address of the current instruction
+
+    Returns:
+      String: disassembled line with comments created by IDA Pro
+    """
+    return idc.GetDisasm(addr)
+
+  @staticmethod
+  def get_ASM_function_header(addr):
+    """Get current function header of the instruction pointed at addr.
+
+    Args:
+      addr: address of the current instruction
+
+    Returns:
+      String: function header string (with comments when available)
+    """
+    comment = idc.get_func_cmt(addr,0)
+    if not comment:
+      comment = idc.get_func_cmt(addr,1)
+
+    addrc = '; {}\n; Function name: {}'.format(comment, idc.get_func_name(addr))
+    
+    return addrc
+  
+  @staticmethod
+  def get_ASM_function_footer(addr):
+    """Get current function footer of the instruction pointed at addr.
+
+    Args:
+      addr: address of the current instruction
+
+    Returns:
+      String: function footer string (with comments when available)
+    """
+
+    addrc = '; {} endp'.format(idc.get_func_name(addr))
+    
+    return addrc
