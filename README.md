@@ -40,7 +40,7 @@ From the **Strings View**:
 
 - **IDA Pro**: Tested with versions 8 or newer.
 - **Python**: Version 3.x with the `requests` module.
-- **VirusTotal API Key**: A valid VirusTotal API key is **required** for using CodeInsight. VTGrep searches rely on an active VirusTotal Enterprise session in your web browser.
+- **VirusTotal API Key**: A valid VirusTotal API key is **required** for using Code Insight. VTGrep searches rely on an active VirusTotal Enterprise session in your web browser.
 
 ## Installation
 
