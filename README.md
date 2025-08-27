@@ -4,9 +4,12 @@ This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **0.90**. I
 
 The plugin offers two core functionalities:
 1.  **VTGrep Integration**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
+
+![Code Similarity Visualization](images/function.gif)
+
 2.  **CodeInsight Notebook**: Leverage VirusTotal's AI-powered code analysis to get summaries and descriptions of functions. Keep track of your findings in a persistent, shareable notebook within the IDA sidebar.
 
-![Plugin Visualization](images/main_window_menu.png)
+![CodeInsight Notebook Visualization](images/main_window_menu.png)
 
 ## Features
 
