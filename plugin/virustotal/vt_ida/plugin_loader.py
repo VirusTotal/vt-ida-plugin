@@ -614,16 +614,16 @@ class VTpluginSetup(object):
     )
     logging.info('** VirusTotal integration plugin for Hex-Ray\'s IDA Pro')
     logging.info('\n** This plugin provides two main features:')
-    logging.info('\n** 1. Code Similarity Search (VTGrep):')
-    logging.info('**    - Right-click in the Disassembly or Strings view to search for:')
-    logging.info('**      - Exact bytes, similar code (ignoring addresses/constants), and similar functions.')
-    logging.info('**      - Selected strings from the Strings window.')
-    logging.info('\n** 2. CodeInsight Notebook:')
+    logging.info('** 1. Code Similarity Search (VTGrep):')
+    logging.info('**    - Right-click in the Disassembly or Strings view to search for.')
+    logging.info('**    - Exact bytes, similar code (ignoring addresses/constants), and similar functions.')
+    logging.info('**    - Selected strings from the Strings window.')
+    logging.info('** 2. CodeInsight Notebook:')
     logging.info('**    - Get AI-powered analysis for any function (disassembled or decompiled).')
     logging.info('**    - Manage analyses in a persistent, dockable panel (View -> Open subviews -> VirusTotal).')
     logging.info('**    - Automatically add analysis summaries as comments to your functions.')
     logging.info('**    - Import/Export notebooks to share your work.')
-    logging.info('\n** To get started with CodeInsight, add your VT API key to virustotal.conf.\n')
+    logging.info('\n** To get started with CodeInsight, add your VT API key to config.py\n')
 
 
 class Error(Exception):
