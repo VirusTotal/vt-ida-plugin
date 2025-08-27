@@ -7,15 +7,15 @@ The plugin offers two core functionalities:
 
 ![Code Similarity Visualization](images/function.gif)
 
-2.  **CodeInsight Notebook**: Leverage VirusTotal's AI-powered code analysis to get summaries and descriptions of functions. Keep track of your findings in a persistent, shareable notebook within the IDA sidebar.
+2.  **Code Insight Notebook**: Leverage VirusTotal's AI-powered code analysis to get summaries and descriptions of functions. Keep track of your findings in a persistent, shareable notebook within the IDA sidebar.
 
-![CodeInsight Notebook Visualization](images/main_window_menu.png)
+![Code Insight Notebook Visualization](images/main_window_menu.png)
 
 ## Features
 
-### CodeInsight Notebook
+### Code Insight Notebook
 
-The CodeInsight Notebook is a powerful feature that lives in its own dockable panel (`View -> Open subviews -> VirusTotal`).
+The Code Insight Notebook is a powerful feature that lives in its own dockable panel (`View -> Open subviews -> VirusTotal`).
 
 - **AI-Powered Analysis**: Request an AI-generated summary and detailed description for any function (disassembled or decompiled).
 - **Persistent Workspace**: All analyses are saved in a "notebook" that can be loaded again across IDA sessions.
@@ -70,7 +70,7 @@ On the first run, the plugin will ask for your consent to automatically upload s
 
 ### API Key
 
-To use the **CodeInsight** features, you must add your VirusTotal API key to the configuration file:
+To use the **Code Insight** features, you must add your VirusTotal API key to the configuration file:
 
 1.  Locate the configuration file: `[USER_IDA_DIR]/plugins/virustotal/config.py`
 2.  Open the file and add your key:
@@ -82,11 +82,11 @@ The plugin creates a `virustotal.conf` file in your user IDA directory (e.g., `%
 
 ## Usage
 
-### CodeInsight Notebook
+### Code Insight Notebook
 
 1.  Open the panel via `View -> Open subviews -> VirusTotal`.
 2.  In the IDA Disassembly or Decompiler view, place your cursor inside a function.
-3.  Right-click and select `VirusTotal -> Ask CodeInsight` or just click on the `Ask CI` button in the `CodeInsight Notebook` panel.
+3.  Right-click and select `VirusTotal -> Ask Code Insight` or just click on the `Ask CI` button in the `Code Insight Notebook` panel.
 4.  The analysis will appear in the VirusTotal panel. You can now:
     - Edit the summary or description.
     - Click **Accept** to save the analysis (including your edits) to the notebook.
