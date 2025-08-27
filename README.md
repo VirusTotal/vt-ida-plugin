@@ -3,11 +3,11 @@
 This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.0**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
 
 The plugin offers two core functionalities:
-1.  **VTGrep Integration**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
+1.  **Code Similarity Search**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
 
 ![Code Similarity Visualization](images/function.gif)
 
-2.  **Code Insight Notebook**: Leverage VirusTotal's AI-powered code analysis to get summaries and descriptions of functions. Keep track of your findings in a persistent, shareable notebook within the IDA sidebar.
+2.  **Code Insight Notebook**: Leverage VirusTotal's Code Insight to get summaries and descriptions of functions. Keep track of your findings in a persistent, shareable notebook within the IDA sidebar.
 
 ![Code Insight Notebook Visualization](images/main_window_menu.png)
 
@@ -17,7 +17,7 @@ The plugin offers two core functionalities:
 
 The Code Insight Notebook is a powerful feature that lives in its own dockable panel (`View -> Open subviews -> VirusTotal`).
 
-- **AI-Powered Analysis**: Request an AI-generated summary and detailed description for any function (disassembled or decompiled).
+- **Code Insight Analysis**: Request an AI-generated summary and detailed description for any function (disassembled or decompiled).
 - **Persistent Workspace**: All analyses are saved in a "notebook" that can be loaded again across IDA sessions.
 - **Edit and Refine**: You can edit the AI-generated analysis to correct it or add your own insights.
 - **Automatic Commenting**: Automatically populate IDA's function comments with the analysis summary for all functions in your notebook.
