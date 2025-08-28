@@ -99,6 +99,12 @@ The plugin creates a `virustotal.conf` file in your user IDA directory (e.g., `%
 2.  Right-click and choose the desired search option under the `VirusTotal` menu.
 3.  A new tab will open in your default web browser with the VTGrep search results.
 
+### Usage examples
+
+In this VirusTotal blog post, we use practical examples to demonstrate how to get the most out of the tool:
+
+https://blog.virustotal.com/2025/08/integrating-code-insight-into-reverse.html
+
 ## Supported Architectures
 
 The "Search for similar code" features are fully supported on the following processor architectures:
