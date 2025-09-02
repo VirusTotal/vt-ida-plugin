@@ -1,0 +1,15 @@
+{
+  "IDAMetadataDescriptorVersion": 1,
+  "plugin": {
+    "name": "vt-ida-plugin",
+    "entryPoint": "vt.py",
+    "version": "v1.0.0",
+    "idaVersions": ">=8",
+    "description": "Integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.",
+    "categories": [
+      "ui-ux-and-visualization",
+      "integration-with-third-parties-interoperability"
+    ],
+    "pythonDependencies": ["requests"]
+  }
+}
