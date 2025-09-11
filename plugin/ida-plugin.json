@@ -1,0 +1,29 @@
+{
+  "IDAMetadataDescriptorVersion": 2,
+  "plugin": {
+    "name": "vt-ida-plugin",
+    "entryPoint": "vt.py",
+    "version": "1.0.0",
+    "idaVersions": ">=8",
+    "description": "Integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.",
+    "license": "Apache 2.0",
+    "categories": [
+      "ui-ux-and-visualization",
+      "integration-with-third-parties-interoperability"
+    ],
+    "keywords": [
+      "virustotal",
+      "vt",
+      "code-similarity",
+      "code-insight"
+    ],
+    "pythonDependencies": ["requests"],
+    "urls": {
+      "repository": "https://github.com/VirusTotal/vt-ida-plugin"
+    },
+    "authors": [{
+      "name": "Gerardo Fernandez",
+      "email": "gerardofn@google.com"
+    }]
+  }
+}
