@@ -19,15 +19,11 @@
     ],
     "pythonDependencies": ["requests"],
     "urls": {
-      "repository": "https://github.com/ida-community-plugins/vt-ida-plugin"
+      "repository": "https://github.com/VirusTotal/vt-ida-plugin"
     },
     "authors": [{
       "name": "Gerardo Fernandez",
       "email": "gerardofn@google.com"
-    }],
-    "maintainers": [{
-      "name": "Willi Ballenthin",
-      "email": "wballenthin@hex-rays.com"
     }]
   }
 }
