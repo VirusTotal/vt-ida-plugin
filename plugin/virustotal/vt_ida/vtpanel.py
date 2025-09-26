@@ -18,7 +18,13 @@ import ida_kernwin
 import ida_hexrays
 import idc
 from idaapi import PluginForm
-from virustotal.vt_ida.ui.panel import Ui_panelUI
+
+#if __IDAVER__ >= 920
+from virustotal.vt_ida.ui.qt6panel import Ui_panelUI
+#else
+from virustotal.vt_ida.ui.qt5panel import Ui_panelUI
+#endif
+
 from virustotal import codeinsight
 from virustotal.codeinsight import ci_notebook
 from virustotal.vt_ida.vtwidgets import VTWidgets
