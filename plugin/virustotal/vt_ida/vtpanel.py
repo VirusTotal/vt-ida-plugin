@@ -19,7 +19,7 @@ import ida_hexrays
 import idc
 from idaapi import PluginForm
 
-if idaapi.IDA_SDK_VERSION >= 920:
+if idaapi.IDA_SDK_VERSION >= 900:
   from virustotal.vt_ida.ui.qt6panel import Ui_panelUI
 else:
   from virustotal.vt_ida.ui.qt5panel import Ui_panelUI

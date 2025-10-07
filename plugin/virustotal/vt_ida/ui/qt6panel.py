@@ -162,7 +162,6 @@ class Ui_panelUI(object):
         self.summary.setSizePolicy(sizePolicy)
         self.summary.setMinimumSize(QtCore.QSize(0, 80))
         font = QtGui.QFont()
-        #font.setWeight(QtGui.QFont.Weight.Normal)
         font.setBold(True)
         self.summary.setFont(font)
         self.summary.setFlat(True)
@@ -191,7 +190,6 @@ class Ui_panelUI(object):
         self.description.setMinimumSize(QtCore.QSize(40, 12))
         font = QtGui.QFont()
         font.setBold(True)
-        #font.setWeight(QtGui.QFont.Weight.Normal)
         self.description.setFont(font)
         self.description.setFlat(True)
         self.description.setObjectName("description")
@@ -220,7 +218,6 @@ class Ui_panelUI(object):
         self.verticalLayout_20.addLayout(self.evaluation_widgets)
         self.line = QtWidgets.QFrame(parent=self.tab_codeinsight)
         font = QtGui.QFont()
-        #font.setBold(False)
         font.setWeight(QtGui.QFont.Weight.Normal)
         self.line.setFont(font)
         self.line.setStyleSheet("color: black;\n"
