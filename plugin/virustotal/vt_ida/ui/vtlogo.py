@@ -8,7 +8,7 @@
 
 import idaapi
 
-if idaapi.IDA_SDK_VERSION >= 900:
+if idaapi.IDA_SDK_VERSION >= 920:
   from PySide6 import QtCore
 else:
   from PyQt5 import QtCore
