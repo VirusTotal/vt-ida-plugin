@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from virustotal.vt_ida.ui import vtlogo
 
 
-class Ui_panelUI(object):
+class Qt5Ui_panelUI(object):
     def setupUi(self, panelUI):
         panelUI.setObjectName("panelUI")
         panelUI.resize(600, 1051)
