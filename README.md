@@ -39,7 +39,7 @@ From the **Strings View**:
 ## Requirements
 
 - **IDA Pro**: Tested with versions 8 or newer.
-- **Python**: Version 3.x with the `requests` module.
+- **Python**: Version 3.x with the `requests` module. TODO: import pyqt6, pyside6
 - **VirusTotal API Key**: A valid VirusTotal API key is **required** for using Code Insight. VTGrep searches rely on an active VirusTotal Enterprise session in your web browser.
 
 ## Installation

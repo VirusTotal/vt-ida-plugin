@@ -7,7 +7,7 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from virustotal.vt_ida.ui import vtlogo
 
 class Ui_panelUI(object):
