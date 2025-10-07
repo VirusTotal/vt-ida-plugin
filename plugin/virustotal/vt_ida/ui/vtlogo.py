@@ -6,7 +6,12 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore
+import idaapi
+
+if idaapi.IDA_SDK_VERSION >= 900:
+  from PySide6 import QtCore
+else:
+  from PyQt5 import QtCore
 
 qt_resource_data = b"\
 \x00\x00\x05\xd9\
