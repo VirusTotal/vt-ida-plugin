@@ -18,7 +18,7 @@ import ida_kernwin
 import ida_hexrays
 import idc
 from idaapi import PluginForm
-
+from virustotal import codeinsight
 from virustotal.vt_ida.ui import Ui_panelUI
 from virustotal.codeinsight import ci_notebook
 from virustotal.vt_ida.vtwidgets import VTWidgets
