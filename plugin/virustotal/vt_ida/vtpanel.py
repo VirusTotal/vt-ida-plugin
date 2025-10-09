@@ -19,12 +19,7 @@ import ida_hexrays
 import idc
 from idaapi import PluginForm
 
-if idaapi.IDA_SDK_VERSION >= 900:
-  from virustotal.vt_ida.ui.qt6panel import Qt6Ui_panelUI as Ui_panelUI
-else:
-  from virustotal.vt_ida.ui.qt5panel import Qt5Ui_panelUI as Ui_panelUI
-
-from virustotal import codeinsight
+from virustotal.vt_ida.ui import Ui_panelUI
 from virustotal.codeinsight import ci_notebook
 from virustotal.vt_ida.vtwidgets import VTWidgets
 import logging
