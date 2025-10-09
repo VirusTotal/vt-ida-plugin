@@ -1,6 +1,6 @@
 # VirusTotal Plugin for IDA Pro
 
-This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.0**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
+This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.01**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
 
 The plugin offers two core functionalities:
 1.  **Code Similarity Search**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
@@ -38,8 +38,8 @@ From the **Strings View**:
 
 ## Requirements
 
-- **IDA Pro**: Tested with versions 8 or newer.
-- **Python**: Version 3.x with the `requests` module. TODO: import pyqt6, pyside6
+- **IDA Pro**: Tested with versions 8 or newer. Please note that IDA Pro v9.2+ requires PySide6.
+- **Python**: Use Python Version 3.x with the requests module. Version 3.9 and later are recommended.
 - **VirusTotal API Key**: A valid VirusTotal API key is **required** for using Code Insight. VTGrep searches rely on an active VirusTotal Enterprise session in your web browser.
 
 ## Installation
