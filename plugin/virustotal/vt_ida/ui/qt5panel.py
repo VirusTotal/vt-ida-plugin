@@ -10,7 +10,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from virustotal.vt_ida.ui import vtlogo
+from . import vtlogo
 
 
 class Qt5Ui_panelUI(object):
@@ -280,4 +280,3 @@ class Qt5Ui_panelUI(object):
         self.pb_load.setText(_translate("panelUI", "Load"))
         self.pb_export.setText(_translate("panelUI", "Export"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_codeinsight), _translate("panelUI", "Code Insight Notebook"))
-
