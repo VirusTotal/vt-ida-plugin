@@ -17,7 +17,5 @@ import idaapi
 
 if idaapi.IDA_SDK_VERSION >= 920:
   from .qt6panel import Qt6Ui_panelUI as Ui_panelUI
-  from . import qt6logo as vtlogo
 else:
   from .qt5panel import Qt5Ui_panelUI as Ui_panelUI
-  from . import qt5logo as vtlogo

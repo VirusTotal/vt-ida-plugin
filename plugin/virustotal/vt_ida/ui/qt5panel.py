@@ -10,7 +10,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from . import vtlogo
+from . import qt5logo
 
 
 class Qt5Ui_panelUI(object):

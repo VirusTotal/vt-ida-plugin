@@ -8,7 +8,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from . import vtlogo
+from . import qt6logo
 
 class Qt6Ui_panelUI(object):
     def setupUi(self, panelUI):
