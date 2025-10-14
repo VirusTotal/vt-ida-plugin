@@ -7,7 +7,7 @@
 
 __author__ = 'gerardofn@virustotal.com'
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from ida_qt import QtCore, QtGui, QtWidgets
 from . import qt6logo
 
 
