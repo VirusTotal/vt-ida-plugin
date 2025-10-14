@@ -28,7 +28,7 @@ import textwrap
 import json
 
 
-class VTPanel(PluginForm):
+class VTPanel(PluginForm, Ui_panelUI):
   """A PluginForm that displays VirusTotal Code Insight analysis within IDA.
 
   This panel allows users to request analysis for functions, view the results,
@@ -60,22 +60,22 @@ class VTPanel(PluginForm):
     """
    
     self.parent = self.FormToPyQtWidget(form)
-    self._populateForm()
-    self._panel.pb_accept.setEnabled(False)
-    self._panel.pb_discard.setEnabled(False)
-    self._panel.cb_faddress.setEnabled(False)
+    self.setupUi(self.parent)
+    self.pb_accept.setEnabled(False)
+    self.pb_discard.setEnabled(False)
+    self.cb_faddress.setEnabled(False)
 
-    self._panel.te_ci_summary.textChanged.connect(self._summary_updated)
-    self._panel.te_ci_description.textChanged.connect(self._description_updated)
-    self._panel.cb_faddress.currentIndexChanged.connect(self._faddress_selected)   
-    self._panel.pb_accept.clicked.connect(self._accept_analysis)
-    self._panel.pb_discard.clicked.connect(self._discard_analysis)
-    self._panel.pb_go.clicked.connect(self._go)
-    self._panel.pb_autocomment.clicked.connect(self._auto_comment)
-    self._panel.pb_askCI.clicked.connect(self.askCI_EA)
-    self._panel.pb_refresh.clicked.connect(self._refreshCI)
-    self._panel.pb_load.clicked.connect(self._load)
-    self._panel.pb_export.clicked.connect(self._export)
+    self.te_ci_summary.textChanged.connect(self._summary_updated)
+    self.te_ci_description.textChanged.connect(self._description_updated)
+    self.cb_faddress.currentIndexChanged.connect(self._faddress_selected)
+    self.pb_accept.clicked.connect(self._accept_analysis)
+    self.pb_discard.clicked.connect(self._discard_analysis)
+    self.pb_go.clicked.connect(self._go)
+    self.pb_autocomment.clicked.connect(self._auto_comment)
+    self.pb_askCI.clicked.connect(self.askCI_EA)
+    self.pb_refresh.clicked.connect(self._refreshCI)
+    self.pb_load.clicked.connect(self._load)
+    self.pb_export.clicked.connect(self._export)
 
   def _go(self):
     """Jumps the IDA disassembly view to the address of the current function."""
@@ -93,7 +93,7 @@ class VTPanel(PluginForm):
     """
     global ci_notebook
 
-    if self._panel.cb_faddress.count() != 0:       
+    if self.cb_faddress.count() != 0:
       msg = """Importing a new Code Insight Notebook
 
 The current notebook will be replaced with a new one.
@@ -338,11 +338,11 @@ The current notebook will be replaced with a new one.
     Insight. If so, it enables the 'Accept' and 'Discard' buttons and stores
     the new text in `self.expected_summary`.
     """
-    new_summary = self._panel.te_ci_summary.toPlainText()
+    new_summary = self.te_ci_summary.toPlainText()
     if not (self.summary == new_summary):
-      self._panel.pb_accept.setEnabled(True)
-      self._panel.pb_discard.setEnabled(True)
-      self.expected_summary = self._panel.te_ci_summary.toPlainText()
+      self.pb_accept.setEnabled(True)
+      self.pb_discard.setEnabled(True)
+      self.expected_summary = self.te_ci_summary.toPlainText()
 
   def _description_updated(self):
     """Slot connected to the description text edit's `textChanged` signal.
@@ -351,11 +351,11 @@ The current notebook will be replaced with a new one.
     Insight. If so, it enables the 'Accept' and 'Discard' buttons and stores
     the new text in `self.expected_description`.
     """
-    new_description = self._panel.te_ci_description.toPlainText()
+    new_description = self.te_ci_description.toPlainText()
     if not (self.description == new_description):
-      self._panel.pb_accept.setEnabled(True)
-      self._panel.pb_discard.setEnabled(True)
-      self.expected_description = self._panel.te_ci_description.toPlainText()
+      self.pb_accept.setEnabled(True)
+      self.pb_discard.setEnabled(True)
+      self.expected_description = self.te_ci_description.toPlainText()
 
   def _faddress_selected(self, index):
     """Slot connected to the function address combo box's
@@ -367,7 +367,7 @@ The current notebook will be replaced with a new one.
     Args:
       index (int): The index of the item selected in the combo box.
     """
-    selected_item = self._panel.cb_faddress.itemText(index)
+    selected_item = self.cb_faddress.itemText(index)
 
     if selected_item != "":
       logging.debug('[VT Plugin] Function selected: %s', selected_item)
@@ -375,7 +375,7 @@ The current notebook will be replaced with a new one.
 
       if selected_item:
         selected_analysis = ci_notebook.get_page(selected_item)
-        self._panel.pb_accept.setEnabled(False)
+        self.pb_accept.setEnabled(False)
 
         if selected_analysis: 
           logging.debug("[VT Plugin] Selected function %s from CI_Notebook: %s", 
@@ -398,17 +398,12 @@ The current notebook will be replaced with a new one.
           self.code_src = code.decode('ascii')   
           
           self._update_view()
-          self._panel.cb_faddress.setCurrentIndex(0)
-          self._panel.pb_discard.setEnabled(True)
-          self._panel.pb_refresh.setEnabled(True)
-          self._panel.pb_go.setEnabled(True)
+          self.cb_faddress.setCurrentIndex(0)
+          self.pb_discard.setEnabled(True)
+          self.pb_refresh.setEnabled(True)
+          self.pb_go.setEnabled(True)
         else:
-          self._panel.pb_discard.setEnabled(False)
-
-  def _populateForm(self):
-    """Initializes the UI from the Qt-generated `Ui_panelUI` class."""
-    self._panel = Ui_panelUI()
-    self._panel.setupUi(self.parent)
+          self.pb_discard.setEnabled(False)
 
   def clean_view(self):
     """Clears all data from the UI panel and resets internal state variables.
@@ -417,11 +412,11 @@ The current notebook will be replaced with a new one.
     analysis. It also resets the enabled state of various buttons.
     """
 
-    self._panel.te_ci_summary.clear()
-    self._panel.te_ci_description.clear()
-    self._panel.le_codetype.clear()
-    self._panel.le_fname.clear()
-    self._panel.le_faddress.clear()
+    self.te_ci_summary.clear()
+    self.te_ci_description.clear()
+    self.le_codetype.clear()
+    self.le_fname.clear()
+    self.le_faddress.clear()
     self.summary = None
     self.description = None
     self.expected_summary = None
@@ -435,21 +430,21 @@ The current notebook will be replaced with a new one.
     self.ci_search = None
 
     # Nothing selected yet
-    self._panel.pb_refresh.setEnabled(False)
-    self._panel.pb_accept.setEnabled(False)
-    self._panel.pb_discard.setEnabled(False)
-    self._panel.pb_refresh.setEnabled(False)
-    self._panel.pb_go.setEnabled(False)
+    self.pb_refresh.setEnabled(False)
+    self.pb_accept.setEnabled(False)
+    self.pb_discard.setEnabled(False)
+    self.pb_refresh.setEnabled(False)
+    self.pb_go.setEnabled(False)
 
-    if self._panel.cb_faddress.count() <= 1:
+    if self.cb_faddress.count() <= 1:
       # We have some functions in the functions list
-      self._panel.pb_export.setEnabled(False)
-      self._panel.pb_autocomment.setEnabled(False)
-      self._panel.cb_faddress.setEnabled(False)
+      self.pb_export.setEnabled(False)
+      self.pb_autocomment.setEnabled(False)
+      self.cb_faddress.setEnabled(False)
     else:
-      self._panel.pb_export.setEnabled(True)
-      self._panel.pb_autocomment.setEnabled(True)
-      self._panel.cb_faddress.setEnabled(True)
+      self.pb_export.setEnabled(True)
+      self.pb_autocomment.setEnabled(True)
+      self.cb_faddress.setEnabled(True)
 
 
   def _discard_analysis(self):
@@ -465,17 +460,17 @@ The current notebook will be replaced with a new one.
     if ci_notebook.get_page(hex(self.faddr)):
       logging.debug('[VT Plugin] Discarding analysis for %s', hex(self.faddr))
       ci_notebook.discard_page(hex(self.faddr))
-      self._panel.cb_faddress.removeItem(self._panel.cb_faddress.findText(hex(self.faddr)))
+      self.cb_faddress.removeItem(self.cb_faddress.findText(hex(self.faddr)))
 
     self.clean_view()
 
-    self._panel.pb_accept.setEnabled(False)
-    self._panel.pb_discard.setEnabled(False)
-    self._panel.pb_refresh.setEnabled(False)
+    self.pb_accept.setEnabled(False)
+    self.pb_discard.setEnabled(False)
+    self.pb_refresh.setEnabled(False)
 
-    if self._panel.cb_faddress.count() > 1:
+    if self.cb_faddress.count() > 1:
       # Show next page in the notebook
-      self._faddress_selected(self._panel.cb_faddress.currentIndex())
+      self._faddress_selected(self.cb_faddress.currentIndex())
 
   def _update_view(self):
     """Populates the UI widgets with the current function's analysis data.
@@ -486,18 +481,18 @@ The current notebook will be replaced with a new one.
     # Updating display
 
     if self.expected_summary:
-      self._panel.te_ci_summary.setText(self.expected_summary)
+      self.te_ci_summary.setText(self.expected_summary)
     else:
-      self._panel.te_ci_summary.setText(self.summary)
+      self.te_ci_summary.setText(self.summary)
     
     if self.expected_description:
-      self._panel.te_ci_description.setText(self.expected_description)   
+      self.te_ci_description.setText(self.expected_description)
     else:
-      self._panel.te_ci_description.setText(self.description)
+      self.te_ci_description.setText(self.description)
     
-    self._panel.le_codetype.setText(self.ctype)
-    self._panel.le_fname.setText(self.fname)
-    self._panel.le_faddress.setText(hex(self.faddr))
+    self.le_codetype.setText(self.ctype)
+    self.le_fname.setText(self.fname)
+    self.le_faddress.setText(hex(self.faddr))
     
   def _accept_analysis(self):
     """Saves the current analysis to the Code Insight notebook.
@@ -518,21 +513,21 @@ The current notebook will be replaced with a new one.
                           expected_description = self.expected_description
                           )
 
-    list_faddress = [self._panel.cb_faddress.itemText(i) for i in range(self._panel.cb_faddress.count())]   
+    list_faddress = [self.cb_faddress.itemText(i) for i in range(self.cb_faddress.count())]
     
-    if self._panel.cb_faddress.count() == 0:
-      self._panel.cb_faddress.addItem("")
+    if self.cb_faddress.count() == 0:
+      self.cb_faddress.addItem("")
 
     if hex(self.faddr) not in list_faddress:
       logging.debug('[VT Plugin] Including current function in the notebook: %s', hex(self.faddr))
-      self._panel.cb_faddress.addItem(hex(self.faddr))
+      self.cb_faddress.addItem(hex(self.faddr))
 
-    self._panel.pb_discard.setEnabled(True)
-    self._panel.cb_faddress.setEnabled(True)
-    self._panel.pb_export.setEnabled(True)
-    self._panel.pb_autocomment.setEnabled(True)
-    self._panel.pb_accept.setEnabled(False)
-    self._panel.pb_go.setEnabled(True)
+    self.pb_discard.setEnabled(True)
+    self.cb_faddress.setEnabled(True)
+    self.pb_export.setEnabled(True)
+    self.pb_autocomment.setEnabled(True)
+    self.pb_accept.setEnabled(False)
+    self.pb_go.setEnabled(True)
     
 
   def _read_notebook(self):
@@ -547,20 +542,20 @@ The current notebook will be replaced with a new one.
     logging.debug('[VT Plugin] Importing notebook.')
 
     # Clean the list bar erasing any previous content.
-    self._panel.cb_faddress.clear()
+    self.cb_faddress.clear()
 
     if ci_notebook:
 
       # Add functions to the list bar
-      list_faddress = [self._panel.cb_faddress.itemText(i) for i in range(self._panel.cb_faddress.count())]   
+      list_faddress = [self.cb_faddress.itemText(i) for i in range(self.cb_faddress.count())]
 
-      if self._panel.cb_faddress.count() == 0:
-        self._panel.cb_faddress.addItem("")
+      if self.cb_faddress.count() == 0:
+        self.cb_faddress.addItem("")
 
       # Iterate over every function in the Notebook
       for address in ci_notebook.get_functions():
         if address not in list_faddress:
-          self._panel.cb_faddress.addItem(address)
+          self.cb_faddress.addItem(address)
 
 
   def set_data(self, faddr=None, fhash=None, ctype=None):
@@ -594,8 +589,8 @@ The current notebook will be replaced with a new one.
         # Updating display
         self._update_view()
         self.fhash = fhash
-        self._panel.pb_accept.setEnabled(True) 
-        self._panel.pb_refresh.setEnabled(True)
+        self.pb_accept.setEnabled(True)
+        self.pb_refresh.setEnabled(True)
         return
       
     else:
@@ -604,11 +599,11 @@ The current notebook will be replaced with a new one.
         # it means that the user closed the VTPanel widget. We need to load all the 
         # functions in the notebook and import them into the current panel.
 
-        self._panel.cb_faddress.addItem("")
+        self.cb_faddress.addItem("")
 
         for address in ci_notebook.get_functions():
           logging.debug('[VT Plugin] Adding function to the list bar: %s', address)
-          self._panel.cb_faddress.addItem(address)
+          self.cb_faddress.addItem(address)
       else:
         logging.debug('[VT Plugin] Creating an empty VTPanel')
     
