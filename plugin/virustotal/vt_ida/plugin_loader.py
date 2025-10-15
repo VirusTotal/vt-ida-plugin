@@ -329,7 +329,6 @@ class MenuVTPanel(idaapi.action_handler_t):
         ida_kernwin.activate_widget(panel, True)
       else:
         # If it doesn't exist, create a new instance and show it.
-        # This is the correct, safe way to create a PluginForm.
         widget_panel = VTPanel()
         widget_panel.Show("VirusTotal")
         idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
