@@ -1,5 +1,5 @@
 {
-  "IDAMetadataDescriptorVersion": 2,
+  "IDAMetadataDescriptorVersion": 1,
   "plugin": {
     "name": "vt-ida-plugin",
     "entryPoint": "vt.py",
