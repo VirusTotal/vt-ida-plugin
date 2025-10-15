@@ -115,3 +115,8 @@ While other architectures may work, they have not been officially tested. Raw by
 
 Check IDA Pro's output window for any message that may need your attention.
 
+## Changelog
+- v1.01 : Added support for IDA Pro 9.2
+- v1.00 : Added Code Insight panel
+- v0.11 : Added support for IDA Pro 8.x
+- v0.10 : Initial release
