@@ -3,7 +3,7 @@
   "plugin": {
     "name": "vt-ida-plugin",
     "entryPoint": "vt.py",
-    "version": "1.01",
+    "version": "1.02",
     "idaVersions": ">=8",
     "description": "Integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.",
     "license": "Apache 2.0",
