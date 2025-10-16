@@ -37,7 +37,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '1.00'
+VT_IDA_PLUGIN_VERSION = '1.01'
 widget_panel = VTPanel()
 
 if config.DEBUG:
@@ -321,6 +321,19 @@ class MenuVTPanel(idaapi.action_handler_t):
       file_path = idaapi.get_input_file_path()      
       widget_panel.set_data(fhash = calculate_hash(file_path))
 
+    if len(config.API_KEY) > 0:
+      # Find the panel if it already exists
+      panel = ida_kernwin.find_widget("VirusTotal")
+      if panel:
+        # If it exists, just bring it to the front
+        ida_kernwin.activate_widget(panel, True)
+      else:
+        # If it doesn't exist, create a new instance and show it.
+        widget_panel = VTPanel()
+        widget_panel.Show("VirusTotal")
+        idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+        file_path = idaapi.get_input_file_path()
+        widget_panel.set_data(fhash=calculate_hash(file_path))
     else:
       if len(config.API_KEY) == 0:
         logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
@@ -789,12 +802,21 @@ class VTplugin(idaapi.plugin_t):
     current_address = idc.get_screen_ea()
     addr_func = idaapi.get_func(current_address)
   
-    if widget_panel.isVisible():
-      widget_panel.clean_view()
+    # Find the panel or create it if it doesn't exist
+    panel_widget = ida_kernwin.find_widget("VirusTotal")
+    if not panel_widget:
+        # Create, show, and dock if not found
+        widget_panel = VTPanel()
+        widget_panel.Show("VirusTotal")
+        idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+    else:
+        # If it exists, get the Python object to interact with it
+        widget_panel = idaapi.PluginForm.FormToPyQtWidget(panel_widget)
+        # Find the VTPanel instance from the Qt widget
+        widget_panel = widget_panel.findChild(VTPanel)
 
-    if not widget_panel.isVisible():
-      widget_panel.Show("VirusTotal")
-      idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+    if widget_panel:
+        widget_panel.clean_view()
 
     try:
       faddr = addr_func.start_ea
@@ -803,8 +825,8 @@ class VTplugin(idaapi.plugin_t):
 
     if faddr:
       widget_panel.set_data(faddr,
-                            fhash = self.vtsetup.file_hash, 
-                            ctype = code_type)
+                              fhash = self.vtsetup.file_hash,
+                              ctype = code_type)
     else:
       logging.info('[VT Plugin] Current address doesn\'t belong to a function')
 

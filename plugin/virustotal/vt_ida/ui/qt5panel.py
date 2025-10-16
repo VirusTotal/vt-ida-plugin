@@ -10,10 +10,10 @@
 __author__ = 'gerardofn@virustotal.com'
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from virustotal.vt_ida.ui import vtlogo
+from . import qt5logo
 
 
-class Ui_panelUI(object):
+class Qt5Ui_panelUI(object):
     def setupUi(self, panelUI):
         panelUI.setObjectName("panelUI")
         panelUI.resize(600, 1051)
@@ -166,7 +166,6 @@ class Ui_panelUI(object):
         self.summary.setMinimumSize(QtCore.QSize(0, 80))
         font = QtGui.QFont()
         font.setBold(True)
-        font.setWeight(75)
         self.summary.setFont(font)
         self.summary.setFlat(True)
         self.summary.setObjectName("summary")
@@ -195,7 +194,6 @@ class Ui_panelUI(object):
         self.description.setMinimumSize(QtCore.QSize(40, 12))
         font = QtGui.QFont()
         font.setBold(True)
-        font.setWeight(75)
         self.description.setFont(font)
         self.description.setFlat(True)
         self.description.setObjectName("description")
@@ -224,8 +222,7 @@ class Ui_panelUI(object):
         self.verticalLayout_20.addLayout(self.evaluation_widgets)
         self.line = QtWidgets.QFrame(self.tab_codeinsight)
         font = QtGui.QFont()
-        font.setBold(False)
-        font.setWeight(50)
+        font.setWeight(QtGui.QFont.Weight.Normal)
         self.line.setFont(font)
         self.line.setStyleSheet("color: black;\n"
 " ")
@@ -283,4 +280,3 @@ class Ui_panelUI(object):
         self.pb_load.setText(_translate("panelUI", "Load"))
         self.pb_export.setText(_translate("panelUI", "Export"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_codeinsight), _translate("panelUI", "Code Insight Notebook"))
-

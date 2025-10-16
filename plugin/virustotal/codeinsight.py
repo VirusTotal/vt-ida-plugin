@@ -106,14 +106,18 @@ class QueryCodeInsight(threading.Thread):
     answer = json_data['data']
    
     if 'error' in answer:
-      error_response = json.loads(answer['error'])
-      self._error_msg = error_response['message']
+      try:
+        error_response = json.loads(answer['error'])
+        self._error_msg = error_response['message']
+      except:
+        self._error_msg = 'Unexpected ERROR: ' + answer
 
-      logging.debug('[VT Plugin] ERROR message: %s', error_response['message'])
       if 'not_parsed_output' in error_response:
         logging.debug('[VT Plugin] ERROR output: %s', error_response['not_parsed_output'])
       elif 'original_message' in error_response:  
         logging.debug('[VT Plugin] ERROR output: %s', error_response['original_message'])        
+      else:
+        logging.debug('[VT Plugin] ERROR message: %s', self._error_msg)
       return None
     
     try:
