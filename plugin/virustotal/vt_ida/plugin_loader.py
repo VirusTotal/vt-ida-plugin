@@ -37,7 +37,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '1.01'
+VT_IDA_PLUGIN_VERSION = '1.02'
 widget_panel = VTPanel()
 
 if config.DEBUG:
@@ -329,6 +329,7 @@ class MenuVTPanel(idaapi.action_handler_t):
         ida_kernwin.activate_widget(panel, True)
       else:
         # If it doesn't exist, create a new instance and show it.
+        # This is the correct, safe way to create a PluginForm.
         widget_panel = VTPanel()
         widget_panel.Show("VirusTotal")
         idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
@@ -802,21 +803,11 @@ class VTplugin(idaapi.plugin_t):
     current_address = idc.get_screen_ea()
     addr_func = idaapi.get_func(current_address)
   
-    # Find the panel or create it if it doesn't exist
-    panel_widget = ida_kernwin.find_widget("VirusTotal")
-    if not panel_widget:
-        # Create, show, and dock if not found
-        widget_panel = VTPanel()
-        widget_panel.Show("VirusTotal")
-        idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
+    if widget_panel.isVisible():
+      widget_panel.clean_view()
     else:
-        # If it exists, get the Python object to interact with it
-        widget_panel = idaapi.PluginForm.FormToPyQtWidget(panel_widget)
-        # Find the VTPanel instance from the Qt widget
-        widget_panel = widget_panel.findChild(VTPanel)
-
-    if widget_panel:
-        widget_panel.clean_view()
+      widget_panel.Show("VirusTotal")
+      idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
 
     try:
       faddr = addr_func.start_ea
