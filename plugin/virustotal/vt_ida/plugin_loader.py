@@ -40,6 +40,14 @@ except ImportError:
 VT_IDA_PLUGIN_VERSION = '1.02'
 widget_panel = VTPanel()
 
+if config.API_KEY:
+  key = config.API_KEY.split('#', 1)[0].strip()
+  if key.startswith("'") and key.endswith("'"):
+    key = key[1:-1]
+  if key.startswith('"') and key.endswith('"'):
+    key = key[1:-1]
+  config.API_KEY = key
+
 if config.DEBUG:
   logging.basicConfig(
       stream=sys.stdout,
@@ -313,13 +321,6 @@ class MenuVTPanel(idaapi.action_handler_t):
   @classmethod
   def activate(cls, ctx):
     global widget_panel
-
-    if (len(config.API_KEY) > 0) & (not widget_panel.isVisible()):
-
-      widget_panel.Show("VirusTotal")
-      idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
-      file_path = idaapi.get_input_file_path()      
-      widget_panel.set_data(fhash = calculate_hash(file_path))
 
     if len(config.API_KEY) > 0:
       # Find the panel if it already exists
@@ -726,7 +727,6 @@ class VTplugin(idaapi.plugin_t):
           VTGrepWildcards.register(self, 'Search for similar code')
           VTGrepWildCardsFunction.register(self, 'Search for similar functions')
           if len(config.API_KEY) > 0:
-            logging.error('[VT Plugin] VirusTotal\'s API_KEY not configured or invalid.')
             CodeInsightASM.register(self, 'Ask Code Insight')
             CodeInsightDecompiled.register(self, 'Ask Code Insight')
 
