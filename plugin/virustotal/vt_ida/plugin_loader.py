@@ -40,14 +40,6 @@ except ImportError:
 VT_IDA_PLUGIN_VERSION = '1.03'
 widget_panel = VTPanel()
 
-if config.API_KEY:
-  key = config.API_KEY.split('#', 1)[0].strip()
-  if key.startswith("'") and key.endswith("'"):
-    key = key[1:-1]
-  if key.startswith('"') and key.endswith('"'):
-    key = key[1:-1]
-  config.API_KEY = key
-
 if config.DEBUG:
   logging.basicConfig(
       stream=sys.stdout,

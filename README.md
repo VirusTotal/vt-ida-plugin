@@ -116,7 +116,7 @@ While other architectures may work, they have not been officially tested. Raw by
 Check IDA Pro's output window for any message that may need your attention.
 
 ## Changelog
-- v1.03 : BUG fixed (reading API KEY)
+- v1.03 : BUG fixed (wrongly showing an invalid api key msg)
 - v1.02 : Added support for IDA Pro 9.2
 - v1.00 : Added Code Insight panel
 - v0.11 : Added support for IDA Pro 8.x
