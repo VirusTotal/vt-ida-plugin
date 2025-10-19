@@ -106,12 +106,23 @@ class QueryCodeInsight(threading.Thread):
     answer = json_data['data']
    
     if 'error' in answer:
-      try:
-        error_response = json.loads(answer['error'])
-        self._error_msg = error_response['message']
-      except:
-        self._error_msg = 'Unexpected ERROR: ' + answer
-
+      error_content = answer.get('error')
+      error_response = {}
+      # The error content from the API can be a string (sometimes JSON), or a dict.
+      if isinstance(error_content, str):
+          try:
+              # Try to parse it as JSON
+              error_response = json.loads(error_content)
+              self._error_msg = error_response.get('message', error_content)
+          except json.JSONDecodeError:
+              # It's just a plain string
+              self._error_msg = error_content
+      elif isinstance(error_content, dict):
+          self._error_msg = error_content.get('message', str(error_content))
+          error_response = error_content
+      else: # Fallback for other types like None
+          self._error_msg = str(error_content)
+      
       if 'not_parsed_output' in error_response:
         logging.debug('[VT Plugin] ERROR output: %s', error_response['not_parsed_output'])
       elif 'original_message' in error_response:  
@@ -188,11 +199,17 @@ class QueryCodeInsight(threading.Thread):
       self._error_msg = 'ERROR: unable to connect to Code Insight'
       return
 
+    # Handle non-JSON responses first (e.g. HTML error pages for 429/5xx)
+    try:
+      json.loads(response.text)
+    except json.JSONDecodeError:
+      self._error_msg = f"API Error (HTTP {response.status_code}): {response.text}"
+      return
+
     if response.status_code == 200:
-      self._return = self._process_output(response.text)
+        self._return = self._process_output(response.text)
     else:
-      logging.debug('[VT Plugin] ERROR connecting Code Insight: %s', response.text)
-      self._error_msg = response.text
+        self._error_msg = self._process_output(response.text)
   
   def join(self, *args):
     """Waits for the thread to complete and returns the result.
