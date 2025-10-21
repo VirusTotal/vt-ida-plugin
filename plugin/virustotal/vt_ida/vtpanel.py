@@ -26,6 +26,7 @@ import logging
 import base64
 import textwrap
 import json
+import threading
 
 
 class VTPanel(PluginForm, Ui_panelUI):
@@ -44,7 +45,6 @@ class VTPanel(PluginForm, Ui_panelUI):
   ctype = None
   code_src = None
   encoded_src = None
-
   ci_search = None
   fhash = None
  
@@ -58,12 +58,16 @@ class VTPanel(PluginForm, Ui_panelUI):
     Args:
       form: The TForm object created by IDA.
     """
+    self.query_in_progress = False # Initialize as instance attribute
    
     self.parent = self.FormToPyQtWidget(form)
     self.setupUi(self.parent)
     self.pb_accept.setEnabled(False)
     self.pb_discard.setEnabled(False)
     self.cb_faddress.setEnabled(False)
+    self.le_faddress.setEnabled(False)
+    self.le_fname.setEnabled(False)
+    self.le_codetype.setEnabled(False)
 
     self.te_ci_summary.textChanged.connect(self._summary_updated)
     self.te_ci_description.textChanged.connect(self._description_updated)
@@ -162,8 +166,6 @@ The current notebook will be replaced with a new one.
       VTWidgets.show_warning('The cursor must be within a function.')
       return
 
-    self.clean_view()
-
     # Determine the active window type to set the correct code type for the query.
     widget_ida = idaapi.get_current_widget()
     widget_ida_type = idaapi.get_widget_type(widget_ida)
@@ -178,84 +180,62 @@ The current notebook will be replaced with a new one.
         VTWidgets.show_warning('This functionality can only be used from the\nDisassembly or Pseudocode views.')
         return
 
-    self.set_data(faddr = addr_func.start_ea,
-                   ctype = code_type)
+    self.clean_view()
 
-  def _askCI_Disassembled(self, faddr=None):
+    # Pepare the data and start the query thread.
+    self.set_data(faddr=addr_func.start_ea, ctype=code_type)
+
+  def _askCI_Disassembled(self, code_src):
     """Performs a Code Insight query using the disassembly of a function.
 
-    It creates a `CodeInsightASM` object, sends the request, and processes
-    the response, updating the panel's internal state with the results.
-
     Args:
-      faddr (int, optional): The starting address of the function to analyze.
+      addr_start (int): The starting address of the function to analyze.
+      addr_end (int): The ending address of the function to analyze.
     """
-    addr_func = idaapi.get_func(faddr)
-    if not addr_func:    
-      logging.error('[VT Plugin] Current address doesn\'t belong to a function')
-      ida_kernwin.warning('Point the cursor in an area beneath a function.')
-      return
     
-    self.ci_search = codeinsight.CodeInsightASM(
-        addr_start = addr_func.start_ea,
-        addr_end = addr_func.end_ea,
-        )
-    self.ci_report = self.ci_search.askCI(use_codetype = codeinsight.CI_DISASSEMBLED)
+    ci_search = codeinsight.CodeInsightASM(code_src=code_src)
+    self.ci_report = ci_search.askCI(use_codetype=codeinsight.CI_DISASSEMBLED)
 
     try:
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
     except:
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
-      self.summary = None
-      self.description= None
+      VTWidgets.show_warning('Invalid answer received from Code Insight')
+      self.clean_view()
       return
 
-    self.faddr = faddr
-    self.fname = idc.get_func_name(addr_func.start_ea)
     self.ctype = codeinsight.CI_DISASSEMBLED
-    self.encoded_src = self.ci_search.get_encoded_src()
-    self.code_src =  self.ci_search.get_src()
+    self.encoded_src = ci_search.get_encoded_src()
+    self.code_src =  ci_search.get_src()
 
-  def _askCI_Decompiled(self, faddr=None):
+  def _askCI_Decompiled(self, code_src):
     """Performs a Code Insight query using the decompiled C-like code of a
     function.
 
-    It uses `ida_hexrays.decompile` to get the source, creates a
-    `CodeInsightDecompiled` object, sends the request, and updates the panel's
-    internal state with the results.
-
     Args:
       faddr (int, optional): The starting address of the function to analyze.
     """
-    addr_func = idaapi.get_func(faddr)
-
-    if not addr_func:
-      logging.error('[VT Plugin] Current address doesn\'t belong to a function')
-      ida_kernwin.warning('Point the cursor in an area beneath a function.')
-      return
-    
-    ci_src = ida_hexrays.decompile(faddr)
-    self.ci_search = codeinsight.CodeInsightDecompiled(code_src = ci_src)
-    self.ci_report = self.ci_search.askCI(use_codetype = codeinsight.CI_DECOMPILED)
+    ci_search = codeinsight.CodeInsightDecompiled(code_src=code_src)
+    self.ci_report = ci_search.askCI(use_codetype = codeinsight.CI_DECOMPILED)
 
     try:
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
     except:
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
+      VTWidgets.show_warning('Invalid answer received from Code Insight')
+      self.clean_view()
       return
     
-    # setting up default showed data
-    self.faddr = faddr
-    self.fname = idc.get_func_name(addr_func.start_ea)
     self.ctype = codeinsight.CI_DECOMPILED
-    self.encoded_src = self.ci_search.get_encoded_src()    
-    self.code_src =  self.ci_search.get_src()
+    self.encoded_src = ci_search.get_encoded_src()    
+    self.code_src =  ci_search.get_src()
 
   def _refreshCI(self):   
     """Refreshes the Code Insight analysis for the currently viewed function."""
     self.set_data(self.faddr, self.ctype)
+
 
   def _auto_comment(self): 
     """Adds or updates IDA function comments for all functions in the notebook.
@@ -284,8 +264,7 @@ The current notebook will be replaced with a new one.
           summary = page['expected_summary']
         else:
           summary = page.get('summary', '')
-
-        # Skip if there's no summary to add.
+   
         if not summary:
           logging.debug('[VT Plugin] No summary for function %s, skipping.', key_str)
           continue
@@ -330,6 +309,8 @@ The current notebook will be replaced with a new one.
       ida_kernwin.info("Comments updated for {} function(s).".format(n_func))
       self._panel.pb_autocomment.setEnabled(False)
 
+  def query_in_progress(self):
+    return self.query_in_progress
 
   def _summary_updated(self):
     """Slot connected to the summary text edit's `textChanged` signal.
@@ -417,6 +398,9 @@ The current notebook will be replaced with a new one.
     self.le_codetype.clear()
     self.le_fname.clear()
     self.le_faddress.clear()
+    self.le_faddress.setEnabled(False)
+    self.le_fname.setEnabled(False)
+    self.le_codetype.setEnabled(False)
     self.summary = None
     self.description = None
     self.expected_summary = None
@@ -428,12 +412,8 @@ The current notebook will be replaced with a new one.
     self.encoded_src = None
     self.ci_report = None
     self.ci_search = None
-
-    # Nothing selected yet
-    self.pb_refresh.setEnabled(False)
     self.pb_accept.setEnabled(False)
     self.pb_discard.setEnabled(False)
-    self.pb_refresh.setEnabled(False)
     self.pb_go.setEnabled(False)
 
     if self.cb_faddress.count() <= 1:
@@ -478,7 +458,10 @@ The current notebook will be replaced with a new one.
     It sets the text for summary, description, code type, function name, and
     address, using the user-edited "expected" values if they exist.
     """
-    # Updating display
+
+    self.le_faddress.setEnabled(True)
+    self.le_fname.setEnabled(True)
+    self.le_codetype.setEnabled(True)
 
     if self.expected_summary:
       self.te_ci_summary.setText(self.expected_summary)
@@ -557,6 +540,37 @@ The current notebook will be replaced with a new one.
         if address not in list_faddress:
           self.cb_faddress.addItem(address)
 
+  def _query_thread(self, faddr, ctype, fhash, code_src):
+    """Worker thread to perform the Code Insight query."""
+    if ctype == codeinsight.CI_DECOMPILED:
+      self._askCI_Decompiled(code_src)
+    else:  # Disassembled function selected or null ctype
+      self._askCI_Disassembled(code_src)
+
+    # Schedule UI updates on the main thread
+    def ui_update_callback():
+      self.faddr = faddr
+      self.fname = idc.get_func_name(faddr)
+      self._post_query_update(fhash)
+
+    ida_kernwin.execute_ui_requests([ui_update_callback])
+
+  def _post_query_update(self, fhash):
+    """Updates the UI after the query thread is finished."""
+    self.te_ci_summary.clear()
+    self.te_ci_description.clear()
+
+    if self.summary:
+      # Updating display
+      self._update_view()
+      self.fhash = fhash
+      self.pb_accept.setEnabled(True)
+    
+    # Re-enable buttons
+    self.pb_askCI.setEnabled(True)
+    self.pb_refresh.setEnabled(True)
+    self.query_in_progress = False
+
 
   def set_data(self, faddr=None, fhash=None, ctype=None):
     """The main entry point to populate the panel with data.
@@ -574,27 +588,62 @@ The current notebook will be replaced with a new one.
       ctype (str, optional): The type of code to analyze ('decompiled' or
         'disassembled'). Defaults to 'disassembled'.
     """
-    # Entry point function
+
     global ci_notebook
-    
+
     if faddr:
+      # Prevent new queries if one is already running.
+      if self.query_in_progress:
+        VTWidgets.show_warning('A current query to Code Insight is in process.\n Please wait.')
+        return
+
+      # Set lock and disable UI elements 
+      self.query_in_progress = True
+      self.pb_askCI.setEnabled(False)
+      self.pb_refresh.setEnabled(False)
+
       logging.debug('[VT Plugin] Creating VTPanel, function: %s', hex(faddr))
 
-      if ctype == codeinsight.CI_DECOMPILED:
-        self._askCI_Decompiled(faddr)
-      else:  # Disassembled function selected or null ctype
-        self._askCI_Disassembled(faddr)
+      # Get function boundaries in the main thread before starting the worker
+      addr_func = idaapi.get_func(faddr)
+      if not addr_func:
+          logging.error('[VT Plugin] Could not find function at address %s', hex(faddr))
+          self.pb_askCI.setEnabled(True)
 
-      if self.summary:        
-        # Updating display
-        self._update_view()
-        self.fhash = fhash
-        self.pb_accept.setEnabled(True)
-        self.pb_refresh.setEnabled(True)
-        return
+          # No query was started, so re-enable refresh if a function was previously selected.
+          self.pb_refresh.setEnabled(self.faddr is not None)
+          self.query_in_progress = False
+          return
+
+      # Prepare the source code in the main thread.
+      code_src = None
+      if ctype == codeinsight.CI_DECOMPILED:
+          code_src = str(ida_hexrays.decompile(faddr))
+      else: # Disassembled
+          query_builder = codeinsight.CodeInsightASM(addr_start=addr_func.start_ea, addr_end=addr_func.end_ea)
+          code_src = query_builder.create_query()
+
+      if not code_src:
+          logging.error('[VT Plugin] Failed to generate source code for the query.')
+          self.pb_askCI.setEnabled(True)
+          self.pb_refresh.setEnabled(True)
+          self.query_in_progress = False
+          return
       
+      self.clean_view()
+      self.te_ci_summary.setText("Waiting for response from Code Insight...")
+      self.te_ci_description.setText("Waiting for response from Code Insight...")
+      self.pb_accept.setEnabled(False)
+      self.pb_discard.setEnabled(False)
+
+      query_thread = threading.Thread(target=self._query_thread, args=(faddr, ctype, fhash, code_src))
+      query_thread.start()
+
     else:
+      self.clean_view() # Clean view when initializing panel without a specific query
+      self.pb_askCI.setEnabled(True)
       if ci_notebook.get_total():
+        
         # If the list of functions is empty but there are functions in the CI Notebook 
         # it means that the user closed the VTPanel widget. We need to load all the 
         # functions in the notebook and import them into the current panel.
@@ -606,9 +655,6 @@ The current notebook will be replaced with a new one.
           self.cb_faddress.addItem(address)
       else:
         logging.debug('[VT Plugin] Creating an empty VTPanel')
-    
-    self.clean_view()
-  
 
   def OnClose(self, form):
     """Called by IDA when the plugin form is closed.
