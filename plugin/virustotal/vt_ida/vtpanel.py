@@ -307,7 +307,7 @@ The current notebook will be replaced with a new one.
         idc.set_func_cmt(key, final_comment.strip(), 0)
 
       ida_kernwin.info("Comments updated for {} function(s).".format(n_func))
-      self._panel.pb_autocomment.setEnabled(False)
+      self.pb_autocomment.setEnabled(False)
 
   def query_in_progress(self):
     return self.query_in_progress
