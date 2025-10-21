@@ -37,7 +37,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '1.03'
+VT_IDA_PLUGIN_VERSION = '1.04'
 widget_panel = VTPanel()
 
 if config.DEBUG:
