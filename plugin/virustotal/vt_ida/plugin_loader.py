@@ -37,7 +37,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '1.03'
+VT_IDA_PLUGIN_VERSION = '1.04'
 widget_panel = VTPanel()
 
 if config.DEBUG:
@@ -121,6 +121,8 @@ class CodeInsightASM(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
+    global widget_panel
+
     if ctx.widget_type == idaapi.BWN_DISASM:
       return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
@@ -160,6 +162,8 @@ class CodeInsightDecompiled(idaapi.action_handler_t):
 
   @classmethod
   def update(cls, ctx):
+    global widget_panel
+  
     if ctx.widget_type == idaapi.BWN_PSEUDOCODE:
       return ida_kernwin.AST_ENABLE_FOR_WIDGET
     else:
@@ -322,7 +326,6 @@ class MenuVTPanel(idaapi.action_handler_t):
         ida_kernwin.activate_widget(panel, True)
       else:
         # If it doesn't exist, create a new instance and show it.
-        # This is the correct, safe way to create a PluginForm.
         widget_panel = VTPanel()
         widget_panel.Show("VirusTotal")
         idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
@@ -790,14 +793,11 @@ class VTplugin(idaapi.plugin_t):
     search_vt.search(True, False)
 
   def query_codeinsight(self, *args, **kwargs):
-   
     code_type = kwargs.get('code_type', None)
     current_address = idc.get_screen_ea()
     addr_func = idaapi.get_func(current_address)
   
-    if widget_panel.isVisible():
-      widget_panel.clean_view()
-    else:
+    if not widget_panel.isVisible():
       widget_panel.Show("VirusTotal")
       idaapi.set_dock_pos('VirusTotal', '', idaapi.DP_RIGHT)
 
@@ -812,6 +812,7 @@ class VTplugin(idaapi.plugin_t):
                               ctype = code_type)
     else:
       logging.info('[VT Plugin] Current address doesn\'t belong to a function')
+
 
   @staticmethod
   def search_for_bytes():

@@ -236,13 +236,14 @@ class CodeInsightASM(object):
       **kwargs: Arbitrary keyword arguments.
         addr_start (int): The starting memory address for disassembly.
         addr_end (int): The ending memory address for disassembly.
+        code_src (str): Pre-generated assembly source code.
     """
     self._MIN_QUERY_SIZE = 40      # number of bytes
     self._MAX_QUERY_SIZE = 4096    # Maximun length of a query string
 
     self._addr_start = kwargs.get('addr_start', 0)
     self._addr_end = kwargs.get('addr_end', 0)
-    self.code_src = None
+    self.code_src = kwargs.get('code_src', None)
     self.encoded_src = None
     self.encoded_response = None
     self.error_msg = None
@@ -274,7 +275,7 @@ class CodeInsightASM(object):
     """
     return self.encoded_response
   
-  def _create_query(self):
+  def create_query(self):
     """Creates an assembly query string from the selected address range.
 
     Gathers disassembly from the start to the end address, including a
@@ -347,7 +348,8 @@ class CodeInsightASM(object):
     global widget_panel
 
     codetype = kwargs.get('use_codetype', '')
-    self.code_src = self._create_query()
+    if not self.code_src:
+      self.code_src = self.create_query()
 
     # After creating the search string, checks if new size is valid
     if self.code_src is None:
@@ -440,7 +442,7 @@ class CodeInsightDecompiled(object):
     global widget_panel
 
     # After creating the search string, checks if new size is valid
-    if self.code_src is None:
+    if not self.code_src:
       logging.error('[CodeInsight] Final query length is too long.')
       VTWidgets.show_warning('Invalid query length or function selected.')
       return None
