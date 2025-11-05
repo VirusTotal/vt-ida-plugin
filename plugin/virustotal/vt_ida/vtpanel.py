@@ -201,13 +201,12 @@ The current notebook will be replaced with a new one.
       self.description = self.ci_report['description']
     except:
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
-      VTWidgets.show_warning('Invalid answer received from Code Insight')
-      self.clean_view()
-      return
+      return False
 
     self.ctype = codeinsight.CI_DISASSEMBLED
     self.encoded_src = ci_search.get_encoded_src()
     self.code_src =  ci_search.get_src()
+    return True
 
   def _askCI_Decompiled(self, code_src):
     """Performs a Code Insight query using the decompiled C-like code of a
@@ -224,13 +223,12 @@ The current notebook will be replaced with a new one.
       self.description = self.ci_report['description']
     except:
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
-      VTWidgets.show_warning('Invalid answer received from Code Insight')
-      self.clean_view()
-      return
+      return False
     
     self.ctype = codeinsight.CI_DECOMPILED
     self.encoded_src = ci_search.get_encoded_src()    
     self.code_src =  ci_search.get_src()
+    return True
 
   def _refreshCI(self):   
     """Refreshes the Code Insight analysis for the currently viewed function."""
@@ -543,17 +541,27 @@ The current notebook will be replaced with a new one.
   def _query_thread(self, faddr, ctype, fhash, code_src):
     """Worker thread to perform the Code Insight query."""
     if ctype == codeinsight.CI_DECOMPILED:
-      self._askCI_Decompiled(code_src)
+      success = self._askCI_Decompiled(code_src)
     else:  # Disassembled function selected or null ctype
-      self._askCI_Disassembled(code_src)
+      success = self._askCI_Disassembled(code_src)
 
-    # Schedule UI updates on the main thread
-    def ui_update_callback():
-      self.faddr = faddr
-      self.fname = idc.get_func_name(faddr)
-      self._post_query_update(fhash)
+    if success:
+      # Schedule UI updates on the main thread
+      def ui_update_callback():
+        self.faddr = faddr
+        self.fname = idc.get_func_name(faddr)
+        self._post_query_update(fhash)
 
-    ida_kernwin.execute_ui_requests([ui_update_callback])
+      ida_kernwin.execute_ui_requests([ui_update_callback])
+    else:
+      # Restore UI state on error
+      def error_callback():
+        VTWidgets.show_warning('Invalid answer received from Code Insight')
+        self.clean_view()
+        self.pb_askCI.setEnabled(True)
+        self.pb_refresh.setEnabled(False)
+        self.query_in_progress = False
+      ida_kernwin.execute_ui_requests([error_callback])
 
   def _post_query_update(self, fhash):
     """Updates the UI after the query thread is finished."""
