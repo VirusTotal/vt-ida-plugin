@@ -134,8 +134,9 @@ class QueryCodeInsight(threading.Thread):
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
     except: 
-      logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)  
-    
+      logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)
+      return None
+        
     return decoded_str
   
   def run(self):
