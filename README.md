@@ -116,6 +116,7 @@ While other architectures may work, they have not been officially tested. Raw by
 Check IDA Pro's output window for any message that may need your attention.
 
 ## Changelog
+- v1.05 : Fixes crash when Code Insight returns an invalid response
 - v1.04 : Fixes issue that left IDA hanging while a query was being performed.
 - v1.03 : BUG fixed (wrongly showing an invalid api key msg)
 - v1.02 : Added support for IDA Pro 9.2
