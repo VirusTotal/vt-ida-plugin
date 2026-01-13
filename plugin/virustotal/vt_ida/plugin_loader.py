@@ -21,6 +21,7 @@ import idc
 import idautils
 import logging
 import os
+import pathlib
 import requests
 import threading
 from virustotal import config
@@ -64,14 +65,22 @@ def calculate_hash(input_file):
   if os.path.isfile(input_file):
     hash_f = hashlib.sha256()
     logging.debug('[VT Plugin] Input file available.')
-    with open(input_file, 'rb') as file_r:
-      try:
-        for file_buffer in iter(lambda: file_r.read(8192), b''):
-          hash_f.update(file_buffer)
-        file_hash = hash_f.hexdigest()
-        logging.debug('[VT Plugin] Input file hash been calculated.')
-      except:
-        logging.debug('[VT Plugin] Can\'t load the input file.')
+    # Convert to Path object and resolve any path issues
+    try:
+        file_path = pathlib.Path(input_file).resolve()
+        with open(file_path, 'rb') as file_r:
+            for file_buffer in iter(lambda: file_r.read(8192), b''):
+                hash_f.update(file_buffer)
+            file_hash = hash_f.hexdigest()
+            logging.debug('[VT Plugin] Input file hash been calculated.')
+    except Exception as e:
+        logging.error(f'[VT Plugin] Can\'t load the input file: {e}')
+        # Fall back to IDA's MD5
+        tmp_hash = idautils.GetInputFileMD5()
+        if len(tmp_hash) == 32:
+            file_hash = tmp_hash
+        else:
+            file_hash = None
   else:
     logging.debug('[VT Plugin] Input file not available.')
     tmp_hash = idautils.GetInputFileMD5()
