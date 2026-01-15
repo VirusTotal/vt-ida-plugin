@@ -1,6 +1,6 @@
 # VirusTotal Plugin for IDA Pro
 
-This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.06**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
+This is the official VirusTotal plugin for Hex-Rays IDA Pro, version **1.07**. It seamlessly integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.
 
 The plugin offers two core functionalities:
 1.  **Code Similarity Search**: Perform advanced searches for code, bytes, and strings across VirusTotal's massive dataset directly from IDA's disassembly and strings views.
