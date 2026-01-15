@@ -22,6 +22,7 @@ import idautils
 import logging
 import os
 import requests
+import pathlib
 import threading
 from virustotal import config
 from virustotal import vtgrep
@@ -60,18 +61,25 @@ def calculate_hash(input_file):
   """Return hash if the file hash has been properly calculated."""
 
   file_hash = None
+  
+  # Use pathlib for better cross-platform path handling (especially on Windows)
+  try:
+    path_obj = pathlib.Path(input_file)
+  except Exception:
+    logging.debug('[VT Plugin] Invalid path format: %s', input_file)
+    path_obj = None
 
-  if os.path.isfile(input_file):
+  if path_obj and path_obj.is_file():
     hash_f = hashlib.sha256()
     logging.debug('[VT Plugin] Input file available.')
-    with open(input_file, 'rb') as file_r:
-      try:
+    try:
+      with path_obj.open('rb') as file_r:
         for file_buffer in iter(lambda: file_r.read(8192), b''):
           hash_f.update(file_buffer)
-        file_hash = hash_f.hexdigest()
-        logging.debug('[VT Plugin] Input file hash been calculated.')
-      except:
-        logging.debug('[VT Plugin] Can\'t load the input file.')
+      file_hash = hash_f.hexdigest()
+      logging.debug('[VT Plugin] Input file hash been calculated.')
+    except:
+      logging.debug('[VT Plugin] Can\'t load the input file.')
   else:
     logging.debug('[VT Plugin] Input file not available.')
     tmp_hash = idautils.GetInputFileMD5()
