@@ -62,7 +62,6 @@ def calculate_hash(input_file):
 
   file_hash = None
   
-  # Use pathlib for better cross-platform path handling (especially on Windows)
   try:
     path_obj = pathlib.Path(input_file)
   except Exception:
