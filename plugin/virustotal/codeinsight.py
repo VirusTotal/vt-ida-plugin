@@ -14,6 +14,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import logging
+import binascii
 import requests
 from virustotal import config
 from virustotal.vt_ida.disassembler import Disassembler
@@ -133,7 +134,7 @@ class QueryCodeInsight(threading.Thread):
     
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
-    except: 
+    except (binascii.Error, ValueError): 
       logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)
       return None
         
@@ -195,7 +196,7 @@ class QueryCodeInsight(threading.Thread):
 
     try:
       response = requests.post(f'{API_URL}/{endpoint}', json = {'data': payload}, headers=headers_apiv3)
-    except:
+    except requests.RequestException:
       logging.debug('[VT Plugin] ERROR: unable to connect to Code Insight')
       self._error_msg = 'ERROR: unable to connect to Code Insight'
       return
@@ -376,7 +377,7 @@ class CodeInsightASM(object):
     if json_str:
       try:
         return_msg = json.loads(json_str)
-      except:
+      except json.JSONDecodeError:
         logging.debug('[CodeInsight] Error processing the returned json file.')
       return return_msg
     else:

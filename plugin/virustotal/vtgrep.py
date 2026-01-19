@@ -347,6 +347,6 @@ class VTGrepSearch(object):
 
         try:
           webbrowser.open_new(url)
-        except:
+        except webbrowser.Error:
           logging.error('[VTGREP] Error while opening the web browser.')
           VTWidgets.show_warning('Error while opening the web browser.')

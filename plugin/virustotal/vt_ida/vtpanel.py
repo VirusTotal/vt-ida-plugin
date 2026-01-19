@@ -118,8 +118,9 @@ The current notebook will be replaced with a new one.
           logging.debug('[VT Plugin] Loading CodeInsight Notebook file: %s', filename)
           with open(filename, 'r', encoding='utf-8') as f:
             imported_json = json.load(f)
-        except:
-            logging.error('[VT Plugin] ERROR importing file: %s', filename)      
+        except (OSError, json.JSONDecodeError):
+            logging.error('[VT Plugin] ERROR importing file: %s', filename)
+            return
 
         ci_notebook.import_data(imported_json)
         self._read_notebook()
@@ -145,7 +146,7 @@ The current notebook will be replaced with a new one.
       logging.debug('[VT Plugin] Exporting CodeInsight Notebook to file: %s', filename)
       with open(filename, 'w', encoding='utf-8') as f:
         json.dump(ci_notebook.show_pages(), f)
-    except:
+    except OSError:
         logging.error('[VT Plugin] ERROR saving file: %s', filename)
 
 
@@ -199,7 +200,7 @@ The current notebook will be replaced with a new one.
     try:
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
-    except:
+    except (KeyError, TypeError):
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
       return False
 
@@ -221,7 +222,7 @@ The current notebook will be replaced with a new one.
     try:
       self.summary = self.ci_report['summary']
       self.description = self.ci_report['description']
-    except:
+    except (KeyError, TypeError):
       logging.error('[VT Plugin] Invalid answer received from Code Insight')
       return False
     

@@ -64,7 +64,7 @@ def calculate_hash(input_file):
   
   try:
     path_obj = pathlib.Path(input_file)
-  except Exception:
+  except TypeError:
     logging.debug('[VT Plugin] Invalid path format: %s', input_file)
     path_obj = None
 
@@ -77,7 +77,7 @@ def calculate_hash(input_file):
           hash_f.update(file_buffer)
       file_hash = hash_f.hexdigest()
       logging.debug('[VT Plugin] Input file hash been calculated.')
-    except:
+    except OSError:
       logging.debug('[VT Plugin] Can\'t load the input file.')
   else:
     logging.debug('[VT Plugin] Input file not available.')
@@ -469,7 +469,7 @@ class CheckSample(threading.Thread):
       logging.debug('[VT Plugin] Checking hash: %s', self.file_hash)
       try:
         response = requests.get(url, headers=headers)
-      except:
+      except requests.RequestException:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
         return False
 
@@ -503,8 +503,9 @@ class CheckSample(threading.Thread):
 
         try:
           response = requests.post(url, files=files, headers=headers)
-        except:
+        except requests.RequestException:
           logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+          return
 
         if response.ok:
           logging.debug('[VT Plugin] Uploaded successfully.')
@@ -555,7 +556,7 @@ class VTpluginSetup(object):
       else:
         self.auto_upload = False
       return True
-    except:
+    except configparser.Error:
       logging.error('[VT Plugin] Error reading the user config file.')
       return False
 
@@ -571,7 +572,7 @@ class VTpluginSetup(object):
       parser.set('General', 'auto_upload', str(self.auto_upload))
       parser.write(config_file)
       config_file.close()
-    except:
+    except (OSError, configparser.Error):
       logging.error('[VT Plugin] Error while creating the user config file.')
       return False
     return True
@@ -608,7 +609,7 @@ class VTpluginSetup(object):
 
     try:
       response = requests.get(url, headers=headers)
-    except:
+    except requests.RequestException:
       logging.error('[VT Plugin] Unable to check for updates.')
       return False
 
@@ -763,8 +764,9 @@ class VTplugin(idaapi.plugin_t):
         
         VTGrepBytes.register(self, 'Search for bytes')
         VTGrepStrings.register(self, 'Search for string')
-      except:
+      except Exception:
         logging.error('[VT Plugin] Unable to register popups actions.')
+        return
     else:
       logging.info('[VT Plugin] Plugin disabled, restart IDA to proceed. ')
       ida_kernwin.warning('Plugin disabled, restart IDA to proceed.')
