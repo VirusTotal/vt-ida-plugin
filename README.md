@@ -116,6 +116,7 @@ While other architectures may work, they have not been officially tested. Raw by
 Check IDA Pro's output window for any message that may need your attention.
 
 ## Changelog
+- v1.07 : Improved error handling
 - v1.06 : Updated plugin metadata to support HCLI Plugin Manager ecosystem
 - v1.05 : Fixes crash when Code Insight returns an invalid response
 - v1.04 : Fixes issue that left IDA hanging while a query was being performed.
