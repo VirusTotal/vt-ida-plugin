@@ -146,7 +146,7 @@ The current notebook will be replaced with a new one.
       logging.debug('[VT Plugin] Exporting CodeInsight Notebook to file: %s', filename)
       with open(filename, 'w', encoding='utf-8') as f:
         json.dump(ci_notebook.show_pages(), f)
-    except OSError:
+    except (OSError, TypeError):
         logging.error('[VT Plugin] ERROR saving file: %s', filename)
 
 

@@ -90,7 +90,11 @@ class CI_Notebook(object):
       "summary": summary,
       "description": description
     }
-    response_str = json.dumps(response)
+    try:
+      response_str = json.dumps(response)
+    except TypeError:
+      logging.error('[VT Plugin] ERROR encoding CI response (not serializable).')
+      response_str = "{}"
     encoded_response = base64.b64encode(response_str.encode('utf-8'))
     return encoded_response.decode('ascii')
 

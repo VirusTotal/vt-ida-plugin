@@ -379,6 +379,7 @@ class CodeInsightASM(object):
         return_msg = json.loads(json_str)
       except json.JSONDecodeError:
         logging.debug('[CodeInsight] Error processing the returned json file.')
+        return_msg = None
       return return_msg
     else:
       self.error_msg = ci.get_error_msg()
@@ -464,7 +465,11 @@ class CodeInsightDecompiled(object):
     self.encoded_src = ci.get_encoded_src()
     
     if json_str:
-      return json.loads(json_str)
+      try:
+        return json.loads(json_str)
+      except json.JSONDecodeError:
+         logging.debug('[CodeInsight] Error processing the returned json file.')
+         return None
     else:
       self.error_msg = ci.get_error_msg()
     
