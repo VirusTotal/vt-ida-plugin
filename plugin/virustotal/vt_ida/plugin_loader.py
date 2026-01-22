@@ -776,7 +776,7 @@ class VTplugin(idaapi.plugin_t):
           self._safe_register_action(VTGrepWildCardsStrict, 'Search for similar code (strict)')
 
       else:
-        logging.info('\n - Processor detected: %s', proc_name)
+        logging.info(' - Processor detected: %s', proc_name)
         logging.info(' - Searching for similar code is not available.')
       
       self._safe_register_action(VTGrepBytes, 'Search for bytes')
