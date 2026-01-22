@@ -684,6 +684,13 @@ class VTplugin(idaapi.plugin_t):
   vtpanel = None
   vtsetup = None
 
+  def _safe_register_action(self, action_cls, label):
+    """Helper to safely register an action, logging any failures without crashing."""
+    try:
+      action_cls.register(self, label)
+    except Exception:
+      logging.exception('[VT Plugin] Failed to register action: %s', label)
+
   def init(self):
     """Set up menu hooks and implements search methods."""
 
@@ -724,16 +731,18 @@ class VTplugin(idaapi.plugin_t):
         arch_info = idaapi.get_inf_structure()
         proc_name = get_procname(arch_info)
 
-      try:
-        logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
-        if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
-          VTGrepWildcards.register(self, 'Search for similar code')
-          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-          if len(config.API_KEY) > 0:
-            CodeInsightASM.register(self, 'Ask Code Insight')
-            CodeInsightDecompiled.register(self, 'Ask Code Insight')
+      logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
+      
+      if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
+        self._safe_register_action(VTGrepWildcards, 'Search for similar code')
+        self._safe_register_action(VTGrepWildCardsFunction, 'Search for similar functions')
+        
+        if len(config.API_KEY) > 0:
+          self._safe_register_action(CodeInsightASM, 'Ask Code Insight')
+          self._safe_register_action(CodeInsightDecompiled, 'Ask Code Insight')
 
-          ### Register menu entry
+        ### Register menu entry
+        try:
           current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
           file_icon = os.path.join(current_path,
                                    'ui',
@@ -754,19 +763,19 @@ class VTplugin(idaapi.plugin_t):
               'View/Open subviews/',
               'my:vtpanel',
               idaapi.SETMENU_APP)
+        except Exception:
+          logging.exception('[VT Plugin] Failed to register VirusTotal menu icon/action.')
 
-          if proc_name in self.SEARCH_STRICT_SUPPORTED:
-            VTGrepWildCardsStrict.register(self, 'Search for similar code (strict)')
+        if proc_name in self.SEARCH_STRICT_SUPPORTED:
+          self._safe_register_action(VTGrepWildCardsStrict, 'Search for similar code (strict)')
 
-        else:
-          logging.info('\n - Processor detected: %s', get_procname(arch_info))
-          logging.info(' - Searching for similar code is not available.')
-        
-        VTGrepBytes.register(self, 'Search for bytes')
-        VTGrepStrings.register(self, 'Search for string')
-      except Exception:
-        logging.error('[VT Plugin] Unable to register popups actions.')
-        return
+      else:
+        logging.info('\n - Processor detected: %s', get_procname(arch_info))
+        logging.info(' - Searching for similar code is not available.')
+      
+      self._safe_register_action(VTGrepBytes, 'Search for bytes')
+      self._safe_register_action(VTGrepStrings, 'Search for string')
+
     else:
       logging.info('[VT Plugin] Plugin disabled, restart IDA to proceed. ')
       ida_kernwin.warning('Plugin disabled, restart IDA to proceed.')
