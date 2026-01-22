@@ -116,12 +116,12 @@ While other architectures may work, they have not been officially tested. Raw by
 Check IDA Pro's output window for any message that may need your attention.
 
 ## Changelog
-- v1.07 : Improved error handling
-- v1.06 : Updated plugin metadata to support HCLI Plugin Manager ecosystem
-- v1.05 : Fixes crash when Code Insight returns an invalid response
+- v1.07 : Improved error handling, allow to use CodeInsight with other CPU architectures identified by IDA Pro.
+- v1.06 : Updated plugin metadata to support HCLI Plugin Manager ecosystem.
+- v1.05 : Fixes crash when Code Insight returns an invalid response.
 - v1.04 : Fixes issue that left IDA hanging while a query was being performed.
-- v1.03 : BUG fixed (wrongly showing an invalid api key msg)
+- v1.03 : BUG fixed (wrongly showing an invalid api key msg).
 - v1.02 : Added support for IDA Pro 9.2
-- v1.00 : Added Code Insight panel
+- v1.00 : Added Code Insight panel.
 - v0.11 : Added support for IDA Pro 8.x
-- v0.10 : Initial release
+- v0.10 : Initial release.
