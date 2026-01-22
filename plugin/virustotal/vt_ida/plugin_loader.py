@@ -732,16 +732,12 @@ class VTplugin(idaapi.plugin_t):
         proc_name = get_procname(arch_info)
 
       logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
-      
-      if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
-        self._safe_register_action(VTGrepWildcards, 'Search for similar code')
-        self._safe_register_action(VTGrepWildCardsFunction, 'Search for similar functions')
-        
-        if len(config.API_KEY) > 0:
-          self._safe_register_action(CodeInsightASM, 'Ask Code Insight')
-          self._safe_register_action(CodeInsightDecompiled, 'Ask Code Insight')
 
-        ### Register menu entry
+      if len(config.API_KEY) > 0:
+        self._safe_register_action(CodeInsightASM, 'Ask Code Insight')
+        self._safe_register_action(CodeInsightDecompiled, 'Ask Code Insight')
+
+        ### Register VirusTotal menu entry
         vticon_data = None
         current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
         file_icon = os.path.join(current_path,
@@ -772,6 +768,10 @@ class VTplugin(idaapi.plugin_t):
           except Exception:
             logging.exception('[VT Plugin] Failed to register VirusTotal menu icon/action.')
 
+      if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
+        self._safe_register_action(VTGrepWildcards, 'Search for similar code')
+        self._safe_register_action(VTGrepWildCardsFunction, 'Search for similar functions')
+        
         if proc_name in self.SEARCH_STRICT_SUPPORTED:
           self._safe_register_action(VTGrepWildCardsStrict, 'Search for similar code (strict)')
 
