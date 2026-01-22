@@ -742,29 +742,35 @@ class VTplugin(idaapi.plugin_t):
           self._safe_register_action(CodeInsightDecompiled, 'Ask Code Insight')
 
         ### Register menu entry
+        vticon_data = None
+        current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+        file_icon = os.path.join(current_path,
+                                 'ui',
+                                 'resources',
+                                 'vt_icon.png')
         try:
-          current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-          file_icon = os.path.join(current_path,
-                                   'ui',
-                                   'resources',
-                                   'vt_icon.png')
           vticon_data = open(file_icon, 'rb').read()
-          vtmenu = idaapi.load_custom_icon(data=vticon_data)
-          action_desc = idaapi.action_desc_t(
-              'my:vtpanel',
-              'VirusTotal',
-              MenuVTPanel(),
-              '',
-              'Show VirusTotal panel with information about the current file',
-              vtmenu)
+        except OSError:
+          logging.error('[VT Plugin] Failed to load icon file: %s', file_icon)
 
-          idaapi.register_action(action_desc)
-          idaapi.attach_action_to_menu(
-              'View/Open subviews/',
-              'my:vtpanel',
-              idaapi.SETMENU_APP)
-        except Exception:
-          logging.exception('[VT Plugin] Failed to register VirusTotal menu icon/action.')
+        if vticon_data:
+          try:
+            vtmenu = idaapi.load_custom_icon(data=vticon_data)
+            action_desc = idaapi.action_desc_t(
+                'my:vtpanel',
+                'VirusTotal',
+                MenuVTPanel(),
+                '',
+                'Show VirusTotal panel with information about the current file',
+                vtmenu)
+
+            idaapi.register_action(action_desc)
+            idaapi.attach_action_to_menu(
+                'View/Open subviews/',
+                'my:vtpanel',
+                idaapi.SETMENU_APP)
+          except Exception:
+            logging.exception('[VT Plugin] Failed to register VirusTotal menu icon/action.')
 
         if proc_name in self.SEARCH_STRICT_SUPPORTED:
           self._safe_register_action(VTGrepWildCardsStrict, 'Search for similar code (strict)')
