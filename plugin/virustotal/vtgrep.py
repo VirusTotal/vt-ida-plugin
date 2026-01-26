@@ -1,4 +1,4 @@
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2019 Google LLC. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -347,6 +347,6 @@ class VTGrepSearch(object):
 
         try:
           webbrowser.open_new(url)
-        except:
+        except webbrowser.Error:
           logging.error('[VTGREP] Error while opening the web browser.')
           VTWidgets.show_warning('Error while opening the web browser.')

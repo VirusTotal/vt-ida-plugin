@@ -1,4 +1,4 @@
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 __author__ = 'gerardofn@virustotal.com'
 
 import logging
+import binascii
 import requests
 from virustotal import config
 from virustotal.vt_ida.disassembler import Disassembler
@@ -133,7 +134,7 @@ class QueryCodeInsight(threading.Thread):
     
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
-    except: 
+    except (binascii.Error, ValueError): 
       logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)
       return None
         
@@ -195,7 +196,7 @@ class QueryCodeInsight(threading.Thread):
 
     try:
       response = requests.post(f'{API_URL}/{endpoint}', json = {'data': payload}, headers=headers_apiv3)
-    except:
+    except requests.RequestException:
       logging.debug('[VT Plugin] ERROR: unable to connect to Code Insight')
       self._error_msg = 'ERROR: unable to connect to Code Insight'
       return
@@ -375,10 +376,9 @@ class CodeInsightASM(object):
         
     if json_str:
       try:
-        return_msg = json.loads(json_str)
-      except:
-        logging.debug('[CodeInsight] Error processing the returned json file.')
-      return return_msg
+        return json.loads(json_str)
+      except json.JSONDecodeError:
+         logging.debug('[CodeInsight] Error processing the returned json file.')
     else:
       self.error_msg = ci.get_error_msg()
     
@@ -463,7 +463,10 @@ class CodeInsightDecompiled(object):
     self.encoded_src = ci.get_encoded_src()
     
     if json_str:
-      return json.loads(json_str)
+      try:
+        return json.loads(json_str)
+      except json.JSONDecodeError:
+         logging.debug('[CodeInsight] Error processing the returned json file.')
     else:
       self.error_msg = ci.get_error_msg()
     

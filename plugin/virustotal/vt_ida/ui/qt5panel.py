@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Copyright 2025 Google LLC. All Rights Reserved.
 
 # Form implementation generated from reading ui file 'vtpanel.ui'
 #

@@ -1,4 +1,4 @@
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2025 Google LLC. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -90,7 +90,11 @@ class CI_Notebook(object):
       "summary": summary,
       "description": description
     }
-    response_str = json.dumps(response)
+    try:
+      response_str = json.dumps(response)
+    except TypeError:
+      logging.error('[VT Plugin] ERROR encoding CI response (not serializable).')
+      response_str = "{}"
     encoded_response = base64.b64encode(response_str.encode('utf-8'))
     return encoded_response.decode('ascii')
 

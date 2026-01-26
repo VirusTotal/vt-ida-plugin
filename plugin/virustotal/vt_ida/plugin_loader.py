@@ -1,4 +1,4 @@
-# Copyright 2025 Google Inc. All Rights Reserved.
+# Copyright 2019 Google LLC. All Rights Reserved.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -22,6 +22,7 @@ import idautils
 import logging
 import os
 import requests
+import pathlib
 import threading
 from virustotal import config
 from virustotal import vtgrep
@@ -37,7 +38,7 @@ try:
 except ImportError:
   import configparser
 
-VT_IDA_PLUGIN_VERSION = '1.06'
+VT_IDA_PLUGIN_VERSION = '1.07'
 widget_panel = VTPanel()
 
 if config.DEBUG:
@@ -60,18 +61,24 @@ def calculate_hash(input_file):
   """Return hash if the file hash has been properly calculated."""
 
   file_hash = None
+  
+  try:
+    path_obj = pathlib.Path(input_file)
+  except TypeError:
+    logging.debug('[VT Plugin] Invalid path format: %s', input_file)
+    path_obj = None
 
-  if os.path.isfile(input_file):
+  if path_obj and path_obj.is_file():
     hash_f = hashlib.sha256()
     logging.debug('[VT Plugin] Input file available.')
-    with open(input_file, 'rb') as file_r:
-      try:
+    try:
+      with path_obj.open('rb') as file_r:
         for file_buffer in iter(lambda: file_r.read(8192), b''):
           hash_f.update(file_buffer)
-        file_hash = hash_f.hexdigest()
-        logging.debug('[VT Plugin] Input file hash been calculated.')
-      except:
-        logging.debug('[VT Plugin] Can\'t load the input file.')
+      file_hash = hash_f.hexdigest()
+      logging.debug('[VT Plugin] Input file hash been calculated.')
+    except OSError:
+      logging.debug('[VT Plugin] Can\'t load the input file.')
   else:
     logging.debug('[VT Plugin] Input file not available.')
     tmp_hash = idautils.GetInputFileMD5()
@@ -462,7 +469,7 @@ class CheckSample(threading.Thread):
       logging.debug('[VT Plugin] Checking hash: %s', self.file_hash)
       try:
         response = requests.get(url, headers=headers)
-      except:
+      except requests.RequestException:
         logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
         return False
 
@@ -496,8 +503,9 @@ class CheckSample(threading.Thread):
 
         try:
           response = requests.post(url, files=files, headers=headers)
-        except:
+        except requests.RequestException:
           logging.error('[VT Plugin] Unable to connect to VirusTotal.com')
+          return
 
         if response.ok:
           logging.debug('[VT Plugin] Uploaded successfully.')
@@ -548,7 +556,7 @@ class VTpluginSetup(object):
       else:
         self.auto_upload = False
       return True
-    except:
+    except configparser.Error:
       logging.error('[VT Plugin] Error reading the user config file.')
       return False
 
@@ -564,7 +572,7 @@ class VTpluginSetup(object):
       parser.set('General', 'auto_upload', str(self.auto_upload))
       parser.write(config_file)
       config_file.close()
-    except:
+    except (OSError, configparser.Error):
       logging.error('[VT Plugin] Error while creating the user config file.')
       return False
     return True
@@ -601,7 +609,7 @@ class VTpluginSetup(object):
 
     try:
       response = requests.get(url, headers=headers)
-    except:
+    except requests.RequestException:
       logging.error('[VT Plugin] Unable to check for updates.')
       return False
 
@@ -676,6 +684,13 @@ class VTplugin(idaapi.plugin_t):
   vtpanel = None
   vtsetup = None
 
+  def _safe_register_action(self, action_cls, label):
+    """Helper to safely register an action, logging any failures without crashing."""
+    try:
+      action_cls.register(self, label)
+    except Exception:
+      logging.exception('[VT Plugin] Failed to register action: %s', label)
+
   def init(self):
     """Set up menu hooks and implements search methods."""
 
@@ -716,48 +731,57 @@ class VTplugin(idaapi.plugin_t):
         arch_info = idaapi.get_inf_structure()
         proc_name = get_procname(arch_info)
 
-      try:
-        logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
-        if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
-          VTGrepWildcards.register(self, 'Search for similar code')
-          VTGrepWildCardsFunction.register(self, 'Search for similar functions')
-          if len(config.API_KEY) > 0:
-            CodeInsightASM.register(self, 'Ask Code Insight')
-            CodeInsightDecompiled.register(self, 'Ask Code Insight')
+      logging.debug('[VT Plugin] Processor detected by IDA: %s', proc_name)
 
-          ### Register menu entry
-          current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
-          file_icon = os.path.join(current_path,
-                                   'ui',
-                                   'resources',
-                                   'vt_icon.png')
+      if len(config.API_KEY) > 0:
+        self._safe_register_action(CodeInsightASM, 'Ask Code Insight')
+        self._safe_register_action(CodeInsightDecompiled, 'Ask Code Insight')
+
+        ### Register VirusTotal menu entry
+        vticon_data = None
+        current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+        file_icon = os.path.join(current_path,
+                                 'ui',
+                                 'resources',
+                                 'vt_icon.png')
+        try:
           vticon_data = open(file_icon, 'rb').read()
-          vtmenu = idaapi.load_custom_icon(data=vticon_data)
-          action_desc = idaapi.action_desc_t(
-              'my:vtpanel',
-              'VirusTotal',
-              MenuVTPanel(),
-              '',
-              'Show VirusTotal panel with information about the current file',
-              vtmenu)
+        except OSError:
+          logging.error('[VT Plugin] Failed to load icon file: %s', file_icon)
 
-          idaapi.register_action(action_desc)
-          idaapi.attach_action_to_menu(
-              'View/Open subviews/',
-              'my:vtpanel',
-              idaapi.SETMENU_APP)
+        if vticon_data:
+          try:
+            vtmenu = idaapi.load_custom_icon(data=vticon_data)
+            action_desc = idaapi.action_desc_t(
+                'my:vtpanel',
+                'VirusTotal',
+                MenuVTPanel(),
+                '',
+                'Show VirusTotal panel with information about the current file',
+                vtmenu)
 
-          if proc_name in self.SEARCH_STRICT_SUPPORTED:
-            VTGrepWildCardsStrict.register(self, 'Search for similar code (strict)')
+            idaapi.register_action(action_desc)
+            idaapi.attach_action_to_menu(
+                'View/Open subviews/',
+                'my:vtpanel',
+                idaapi.SETMENU_APP)
+          except Exception:
+            logging.exception('[VT Plugin] Failed to register VirusTotal menu icon/action.')
 
-        else:
-          logging.info('\n - Processor detected: %s', get_procname(arch_info))
-          logging.info(' - Searching for similar code is not available.')
+      if (proc_name in self.SEARCH_STRICT_SUPPORTED) | (proc_name in self.SEARCH_CODE_SUPPORTED):
+        self._safe_register_action(VTGrepWildcards, 'Search for similar code')
+        self._safe_register_action(VTGrepWildCardsFunction, 'Search for similar functions')
         
-        VTGrepBytes.register(self, 'Search for bytes')
-        VTGrepStrings.register(self, 'Search for string')
-      except:
-        logging.error('[VT Plugin] Unable to register popups actions.')
+        if proc_name in self.SEARCH_STRICT_SUPPORTED:
+          self._safe_register_action(VTGrepWildCardsStrict, 'Search for similar code (strict)')
+
+      else:
+        logging.info(' - Processor detected: %s', proc_name)
+        logging.info(' - Searching for similar code is not available.')
+      
+      self._safe_register_action(VTGrepBytes, 'Search for bytes')
+      self._safe_register_action(VTGrepStrings, 'Search for string')
+
     else:
       logging.info('[VT Plugin] Plugin disabled, restart IDA to proceed. ')
       ida_kernwin.warning('Plugin disabled, restart IDA to proceed.')
