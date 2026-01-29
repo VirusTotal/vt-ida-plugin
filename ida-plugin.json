@@ -25,6 +25,25 @@
     "authors": [{
       "name": "Gerardo Fernandez",
       "email": "gerardofn@virustotal.com"
-    }]
+    }],
+    "settings": [
+      {
+        "name": "VirusTotal Api Key",
+        "key": "api_key",
+        "title": "VirusTotal API Key for Code Insight",
+        "type": "string",
+        "required": false,
+        "documentation": "Your VirusTotal API key is required to access Code Insight features. You can obtain an API key by creating a free account on VirusTotal's website."
+      },
+      {
+        "name": "Enable Debug Mode",
+        "key": "debug",
+        "title": "Enable Debug Mode", 
+        "type": "boolean",
+        "default": false,
+        "required": false,
+        "documentation": "Enable debug mode to log detailed information for troubleshooting purposes."
+      }
+    ]
   }
 }
