@@ -7,6 +7,7 @@
     "idaVersions": ">=8",
     "description": "Integrates VirusTotal's powerful analysis capabilities directly into your reverse engineering workflow.",
     "license": "Apache 2.0",
+    "logoPath": "plugin/virustotal/vt_ida/ui/resources/vt_logo.png",
     "categories": [
       "ui-ux-and-visualization",
       "integration-with-third-parties-interoperability"
