@@ -44,6 +44,16 @@ From the **Strings View**:
 
 ## Installation
 
+### via Hex-Rays HCLI Plugin Manager
+
+The plugin supports installation through the [Hex-Rays HCLI](https://hcli.docs.hex-rays.com/getting-started/installation/) plugin manager:
+
+```bash
+hcli plugin install vt-ida-plugin
+```
+
+### Manual Installation
+
 1.  Install the `requests` module for Python:
     ```bash
     $ pip install requests
@@ -70,8 +80,14 @@ On the first run, the plugin will ask for your consent to automatically upload s
 
 ### API Key
 
-To use the **Code Insight** features, you must add your VirusTotal API key to the configuration file:
+To use the **Code Insight** features, you must configure your VirusTotal API key:
 
+Using HCLI:
+```bash
+hcli plugin config vt-ida-plugin set api_key "YOUR_VT_API_KEY_HERE"
+```
+
+Manually:
 1.  Locate the configuration file: `[USER_IDA_DIR]/plugins/virustotal/config.py`
 2.  Open the file and add your key:
     ```ini
@@ -117,13 +133,4 @@ Check IDA Pro's output window for any message that may need your attention.
 
 ## Changelog
 
-- v1.08 : Added support for configuration via the IDA Pro plugin manager (kevimuoz).
-- v1.07 : Improved error handling, now CodeInsight works with other CPU architectures identified by IDA Pro.
-- v1.06 : Updated plugin metadata to support HCLI Plugin Manager ecosystem.
-- v1.05 : Fixes crash when Code Insight returns an invalid response.
-- v1.04 : Fixes issue that left IDA hanging while a query was being performed.
-- v1.03 : BUG fixed (wrongly showing an invalid api key msg).
-- v1.02 : Added support for IDA Pro 9.2
-- v1.00 : Added Code Insight panel.
-- v0.11 : Added support for IDA Pro 8.x
-- v0.10 : Initial release.
+See [CHANGELOG.md](CHANGELOG.md) for the full version history.

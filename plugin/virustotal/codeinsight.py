@@ -132,12 +132,17 @@ class QueryCodeInsight(threading.Thread):
         logging.debug('[VT Plugin] ERROR message: %s', self._error_msg)
       return None
     
+    # Current API returns a structured response ({summary, description}).
+    if isinstance(answer, dict):
+      return json.dumps(answer).encode('utf-8')
+
+    # Keep compatibility with the legacy base64 response.
     try:
       decoded_str = base64.urlsafe_b64decode(answer)
-    except (binascii.Error, ValueError): 
+    except (binascii.Error, ValueError, TypeError):
       logging.debug('[VT Plugin] ERROR decoding Code Insight response: %s', response)
       return None
-        
+
     return decoded_str
   
   def run(self):
